@@ -1,0 +1,7 @@
+{
+  "version": "1.0.1",
+  "versionCode": 2,
+  "changelog": "- មុខងារដោនឡូតរៀបចំជា Folder រឿង (Drama Folders) ទាំងក្នុងកំពុងដំណើរការ និងបានបញ្ចប់\n- បង្ហាញរបារ Progress និងចំនួនភាគ (ឧ. 1/200)\n- អាចដោនឡូត Hongguo Full Episodes លើទូរស័ព្ទផ្ទាល់ដោយមិនបាច់បើកកុំព្យូទ័រ\n- បន្ថែមប្រព័ន្ធ Auto Update ផ្ទាល់ក្នុង Setting",
+  "downloadUrl": "https://github.com/leng121212/app_DL_PL/releases/latest/download/Trabekprey-DL-Pro-Release.apk",
+  "forceUpdate": false
+}
