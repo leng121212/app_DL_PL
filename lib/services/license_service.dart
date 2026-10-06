@@ -376,6 +376,18 @@ class LicenseService with ChangeNotifier {
             final refreshToken = data['refresh_token'] as String?;
             final lease = data['lease'] as String?;
             if (refreshToken != null && lease != null) {
+              final parts = lease.split('.');
+              if (parts.isNotEmpty) {
+                final norm = base64Url.normalize(parts[0]);
+                final pData = jsonDecode(utf8.decode(base64Url.decode(norm))) as Map<String, dynamic>;
+                final leaseProduct = pData['product_id'] as String?;
+                if (leaseProduct != null && leaseProduct.isNotEmpty && leaseProduct != productId) {
+                  await _clearCredentials();
+                  _state = LicenseState.unauthenticated('PRODUCT_MISMATCH', 'License នេះសម្រាប់ $leaseProduct មិនមែនសម្រាប់ Trabekprey-DL Pro ទេ។');
+                  notifyListeners();
+                  return false;
+                }
+              }
               await _saveCredentials(refreshToken, lease);
               _applyLease(lease);
               await clearPendingSession();
@@ -426,6 +438,13 @@ class LicenseService with ChangeNotifier {
       final payloadJson = utf8.decode(base64Url.decode(normalized));
       final data = jsonDecode(payloadJson) as Map<String, dynamic>;
 
+      final leaseProduct = data['product_id'] as String?;
+      if (leaseProduct != null && leaseProduct.isNotEmpty && leaseProduct != productId) {
+        _clearCredentials();
+        _state = LicenseState.unauthenticated('PRODUCT_MISMATCH', 'License នេះសម្រាប់ $leaseProduct មិនមែនសម្រាប់ Trabekprey-DL Pro ទេ។');
+        return;
+      }
+
       final email = data['email'] as String? ?? 'User';
       final expSec = data['expires_at'] as int?;
       final DateTime exp = expSec != null
@@ -450,6 +469,11 @@ class LicenseService with ChangeNotifier {
       final normalized = base64Url.normalize(parts[0]);
       final payloadJson = utf8.decode(base64Url.decode(normalized));
       final data = jsonDecode(payloadJson) as Map<String, dynamic>;
+
+      final leaseProduct = data['product_id'] as String?;
+      if (leaseProduct != null && leaseProduct.isNotEmpty && leaseProduct != productId) {
+        return false;
+      }
 
       final email = data['email'] as String? ?? 'User';
       final expSec = data['expires_at'] as int?;
