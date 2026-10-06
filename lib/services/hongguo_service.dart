@@ -200,6 +200,36 @@ class HongguoService {
     return [];
   }
 
+  /// Search dramas by keyword across Hongguo Bridge Engine and catalog
+  static Future<List<DramaItem>> search(String keyword) async {
+    final query = keyword.trim();
+    if (query.isEmpty) return [];
+
+    final hasBridge = _isBridgeAvailable == true || await checkBridgeConnection();
+    if (hasBridge) {
+      try {
+        final bridgeUrl = await getBridgeUrl();
+        final uri = Uri.parse('$bridgeUrl/search?q=${Uri.encodeComponent(query)}&api_key=$apiKey');
+        final res = await http.get(uri, headers: {'x-api-key': apiKey}).timeout(const Duration(seconds: 12));
+        if (res.statusCode == 200) {
+          final data = jsonDecode(utf8.decode(res.bodyBytes));
+          final items = _parseBridgeItems(data);
+          if (items.isNotEmpty) return items;
+        }
+      } catch (_) {}
+    }
+
+    // Fallback: search in loaded catalog or home page
+    try {
+      final homeItems = await _fetchFromHomePage();
+      final qLower = query.toLowerCase();
+      final matched = homeItems.where((d) => d.title.toLowerCase().contains(qLower)).toList();
+      if (matched.isNotEmpty) return matched;
+    } catch (_) {}
+
+    return [];
+  }
+
   /// Queries the Hongguo Pro Bridge Engine for catalog categories
   static Future<List<DramaItem>> _fetchCatalogFromBridge(String category) async {
     try {
@@ -858,10 +888,14 @@ class HongguoService {
       final epList = (data['episodes'] as List? ?? []);
       if (epList.isEmpty) return null;
 
-      // Extract metadata
-      String title = data['title'] ?? '';
-      String cover = data['cover'] ?? '';
-      String intro = data['intro'] ?? '';
+      final meta = (data['meta'] is Map<String, dynamic>)
+          ? data['meta'] as Map<String, dynamic>
+          : <String, dynamic>{};
+
+      // Extract metadata (supports both flat and nested meta schemas)
+      String title = data['title'] ?? meta['title'] ?? meta['series_name'] ?? '';
+      String cover = data['cover'] ?? meta['cover'] ?? meta['series_cover'] ?? '';
+      String intro = data['intro'] ?? meta['intro'] ?? meta['series_intro'] ?? '';
       List<String> tags = [];
 
       // If title or cover missing from bridge, attempt to scrape from web
@@ -1166,15 +1200,16 @@ class HongguoService {
         if (results.isNotEmpty) {
           DramaItem? best;
           for (final item in results) {
-            if (item.title.contains(kw) || kw.contains(item.title) || item.title == cleanTitle) {
+            if (_isStrictTitleMatch(cleanTitle, kw, item.title)) {
               best = item;
               break;
             }
           }
-          best ??= results.first;
-          final resolved = await EightMovieService.resolveDrama(best.id);
-          if (resolved != null && resolved.episodes != null && resolved.episodes!.isNotEmpty) {
-            return resolved;
+          if (best != null) {
+            final resolved = await EightMovieService.resolveDrama(best.id);
+            if (resolved != null && resolved.episodes != null && resolved.episodes!.isNotEmpty) {
+              return resolved;
+            }
           }
         }
       } catch (_) {}
@@ -1185,21 +1220,39 @@ class HongguoService {
         if (beeResults.isNotEmpty) {
           DramaItem? best;
           for (final item in beeResults) {
-            if (item.title.contains(kw) || kw.contains(item.title) || item.title == cleanTitle) {
+            if (_isStrictTitleMatch(cleanTitle, kw, item.title)) {
               best = item;
               break;
             }
           }
-          best ??= beeResults.first;
-          final resolved = await BeeplayletService.resolveDrama(best.id);
-          if (resolved != null && resolved.episodes != null && resolved.episodes!.isNotEmpty) {
-            return resolved;
+          if (best != null) {
+            final resolved = await BeeplayletService.resolveDrama(best.id);
+            if (resolved != null && resolved.episodes != null && resolved.episodes!.isNotEmpty) {
+              return resolved;
+            }
           }
         }
       } catch (_) {}
     }
 
     return null;
+  }
+
+  /// Checks if two titles are actually the same drama (strictly prevents mismatched fallback)
+  static bool _isStrictTitleMatch(String cleanTitle, String kw, String candidateTitle) {
+    final a = cleanTitle.replaceAll(RegExp(r'[\s\p{P}]', unicode: true), '').toLowerCase();
+    final b = candidateTitle.replaceAll(RegExp(r'[\s\p{P}]', unicode: true), '').toLowerCase();
+    final k = kw.replaceAll(RegExp(r'[\s\p{P}]', unicode: true), '').toLowerCase();
+
+    if (a.isEmpty || b.isEmpty) return false;
+    if (a == b) return true;
+
+    // Both titles must have at least 3 chars and substantial overlap
+    if (k.length >= 3 && b.contains(k)) return true;
+    if (a.length >= 3 && b.contains(a)) return true;
+    if (b.length >= 3 && a.contains(b)) return true;
+
+    return false;
   }
 
   /// Unlocks VIP episodes 4+ by cross-referencing mirror platforms if bridge is unavailable

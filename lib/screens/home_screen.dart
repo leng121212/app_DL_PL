@@ -167,6 +167,19 @@ class _HomeScreenState extends State<HomeScreen> {
       switch (_currentPlatform) {
         case PlatformType.hongguo:
           resolved = await HongguoService.resolveDrama(q);
+          if (resolved == null) {
+            final hgMatches = await HongguoService.search(q);
+            if (hgMatches.isNotEmpty) {
+              setState(() {
+                _catalogItems = hgMatches;
+                _isResolving = false;
+              });
+              if (_catalogScrollController.hasClients) {
+                _catalogScrollController.jumpTo(0);
+              }
+              return;
+            }
+          }
           break;
         case PlatformType.reelshort:
           resolved = await ReelshortService.resolveDrama(q);

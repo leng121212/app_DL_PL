@@ -175,7 +175,7 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
 
   Future<void> _startDownload() async {
     final eps = _currentDrama.episodes ?? [];
-    final selectedEps = eps.where((e) => _selectedIndices.contains(e.index)).toList();
+    List<EpisodeItem> selectedEps = eps.where((e) => _selectedIndices.contains(e.index)).toList();
     if (selectedEps.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -184,6 +184,51 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
         ),
       );
       return;
+    }
+
+    if (_currentDrama.platform == PlatformType.hongguo && !_isBridgeActive) {
+      final lockedSelected = selectedEps
+          .where((e) => e.index > 3 && (e.streamUrl == null || e.streamUrl!.isEmpty))
+          .toList();
+      if (lockedSelected.isNotEmpty) {
+        final proceed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: AppTheme.cardBg,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.bolt_rounded, color: AppTheme.amberWarning, size: 22),
+                SizedBox(width: 8),
+                Text('ត្រូវការ Hongguo VIP Bridge',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+              ],
+            ),
+            content: Text(
+              'ភាគទី 4 ឡើងទៅ (${lockedSelected.length} ភាគ) ត្រូវការភ្ជាប់ VIP Server ពីកុំព្យូទ័រ (START_HONGGUO_PRO_BRIDGE.bat) ដើម្បីទាញយកបានគ្រប់ភាគ ១០០%។\n\nតើលោកអ្នកចង់ទាញយកតែភាគឥតគិតថ្លៃ (Free EP 1-3) ដែរឬទេ?',
+              style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('ត្រឡប់ក្រោយ', style: TextStyle(color: AppTheme.textMuted)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.cyanAccent, foregroundColor: Colors.black),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('ទាញយកតែភាគ 1-3', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        );
+
+        if (proceed != true) return;
+        selectedEps = selectedEps
+            .where((e) => !(e.index > 3 && (e.streamUrl == null || e.streamUrl!.isEmpty)))
+            .toList();
+        if (selectedEps.isEmpty) return;
+      }
     }
 
     setState(() => _isQueueing = true);
@@ -771,7 +816,7 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
                         final ep = eps[index];
                         final isSelected = _selectedIndices.contains(ep.index);
                         final isLocked = _currentDrama.platform == PlatformType.hongguo
-                            ? (!_isBridgeActive && ep.index > 3)
+                            ? (!_isBridgeActive && ep.index > 3 && (ep.streamUrl == null || ep.streamUrl!.isEmpty))
                             : false;
                         final epLabel = (_currentDrama.platform == PlatformType.web20 ||
                                 _currentDrama.platform == PlatformType.hongguo ||

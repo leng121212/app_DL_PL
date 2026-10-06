@@ -1350,6 +1350,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> with SingleTickerProv
             onPressed: () {
               Navigator.pop(ctx);
               _dm.cancelDrama(title);
+              _dm.removeCancelledTasksForDrama(title);
             },
             child: const Text('បោះបង់', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),

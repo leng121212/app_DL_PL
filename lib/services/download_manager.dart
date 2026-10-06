@@ -22,7 +22,7 @@ class DownloadManager with ChangeNotifier {
   static const _channel = MethodChannel('com.trabekprey.downloader/storage');
 
   final List<DownloadTask> _tasks = [];
-  int _concurrency = 3;
+  int _concurrency = 2;
   bool _isProcessing = false;
   Directory? _customBaseDir;
 
@@ -452,6 +452,37 @@ class DownloadManager with ChangeNotifier {
     File tempFile,
     DownloadTask task,
   ) async {
+    const maxEpisodeRetries = 3;
+    int episodeAttempt = 0;
+
+    while (episodeAttempt < maxEpisodeRetries) {
+      episodeAttempt++;
+      if (task.status == TaskStatus.cancelled || task.status == TaskStatus.paused) {
+        return;
+      }
+
+      try {
+        await _executeHlsStream(m3u8Url, outputFile, tempFile, task);
+        return;
+      } catch (e) {
+        if (task.status == TaskStatus.cancelled || task.status == TaskStatus.paused) {
+          return;
+        }
+        if (episodeAttempt >= maxEpisodeRetries) {
+          rethrow;
+        }
+        // Transient network failure: wait with backoff and retry episode
+        await Future.delayed(Duration(seconds: 2 * episodeAttempt));
+      }
+    }
+  }
+
+  Future<void> _executeHlsStream(
+    String m3u8Url,
+    File outputFile,
+    File tempFile,
+    DownloadTask task,
+  ) async {
     final masterUri = Uri.parse(m3u8Url);
     final client = http.Client();
     final hlsReferer = _getRefererForTask(task, m3u8Url);
@@ -464,7 +495,7 @@ class DownloadManager with ChangeNotifier {
               'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
           'Referer': hlsReferer,
         },
-      ).timeout(const Duration(seconds: 18));
+      ).timeout(const Duration(seconds: 45));
 
       if (res.statusCode != 200) {
         if (res.statusCode == 403) {
@@ -511,7 +542,7 @@ class DownloadManager with ChangeNotifier {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
               'Referer': hlsReferer,
             },
-          ).timeout(const Duration(seconds: 18));
+          ).timeout(const Duration(seconds: 45));
           if (vRes.statusCode == 200) {
             playlistTxt = vRes.body;
           }
@@ -546,8 +577,8 @@ class DownloadManager with ChangeNotifier {
       int lastReportedTime = 0;
       int lastReportedBytes = 0;
 
-      // Accelerated Parallel HLS segment downloader (6 concurrent workers)
-      const segmentConcurrency = 6;
+      // Stable Parallel HLS segment downloader (2 concurrent workers to prevent network choke)
+      const segmentConcurrency = 2;
       final Map<int, Uint8List> completedSegments = {};
       int nextDownloadIndex = 0;
       int nextWriteIndex = 0;
@@ -576,7 +607,7 @@ class DownloadManager with ChangeNotifier {
             'Referer': _getRefererForTask(task, segUri.toString()),
           };
 
-          for (int attempt = 1; attempt <= 4; attempt++) {
+          for (int attempt = 1; attempt <= 5; attempt++) {
             if (task.status == TaskStatus.cancelled || task.status == TaskStatus.paused) {
               return;
             }
@@ -584,7 +615,7 @@ class DownloadManager with ChangeNotifier {
               final sRes = await client.get(
                 segUri,
                 headers: segHeaders,
-              ).timeout(const Duration(seconds: 18));
+              ).timeout(const Duration(seconds: 60));
 
               if (sRes.statusCode == 200 && sRes.bodyBytes.isNotEmpty) {
                 segBytes = sRes.bodyBytes;
@@ -593,12 +624,12 @@ class DownloadManager with ChangeNotifier {
                 throw HttpException('HTTP Status ${sRes.statusCode} on segment $idx');
               }
             } catch (err) {
-              if (attempt == 4) {
+              if (attempt == 5) {
                 hasError = true;
                 downloadError = err;
                 return;
               }
-              await Future.delayed(Duration(milliseconds: 250 * attempt));
+              await Future.delayed(Duration(milliseconds: 1000 * attempt));
             }
           }
 
@@ -744,7 +775,7 @@ class DownloadManager with ChangeNotifier {
           request.headers['Range'] = 'bytes=$existingBytes-';
         }
 
-        final response = await client.send(request).timeout(const Duration(seconds: 25));
+        final response = await client.send(request).timeout(const Duration(seconds: 60));
 
         // Re-resolve expired CDN token on 403 or 404
         if ((response.statusCode == 403 || response.statusCode == 404) && attempt < maxAttempts) {
@@ -985,10 +1016,19 @@ class DownloadManager with ChangeNotifier {
       if (task.status == TaskStatus.downloading ||
           task.status == TaskStatus.pending ||
           task.status == TaskStatus.resolving ||
-          task.status == TaskStatus.paused) {
+          task.status == TaskStatus.paused ||
+          task.status == TaskStatus.failed) {
         task.setStatus(TaskStatus.cancelled);
       }
     }
+    notifyListeners();
+  }
+
+  /// Remove all cancelled and failed tasks for a drama from in-memory queue
+  void removeCancelledTasksForDrama(String dramaTitle) {
+    _tasks.removeWhere((t) =>
+        t.dramaTitle == dramaTitle &&
+        (t.status == TaskStatus.cancelled || t.status == TaskStatus.failed));
     notifyListeners();
   }
 
