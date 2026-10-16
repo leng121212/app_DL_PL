@@ -6,6 +6,8 @@ import '../models/drama_models.dart';
 import 'license_service.dart';
 import 'eightmovie_service.dart';
 import 'beeplaylet_service.dart';
+import 'mydrama_service.dart';
+import 'bmp4_service.dart';
 
 class HongguoService {
   static const String baseUrl = 'https://hongguoduanju.com';
@@ -1076,6 +1078,41 @@ class HongguoService {
     // 1. If Bridge is active, return direct decrypted stream URL
     if (_isBridgeAvailable == true || await checkBridgeConnection()) {
       final bridgeUrl = await getBridgeUrl();
+      // 1. Try /video_url first (returns direct MP4 url)
+      try {
+        final vRes = await http.get(
+          Uri.parse('$bridgeUrl/video_url?vid=$vid&api_key=$apiKey'),
+          headers: {'x-api-key': apiKey},
+        ).timeout(const Duration(seconds: 8));
+        if (vRes.statusCode == 200) {
+          final vData = jsonDecode(vRes.body) as Map<String, dynamic>;
+          final directUrl = vData['url'] as String? ?? vData['backup'] as String?;
+          if (directUrl != null && directUrl.isNotEmpty) {
+            return directUrl;
+          }
+        }
+      } catch (_) {}
+
+      // 2. Try /play (resolves stream_url from server)
+      try {
+        final pRes = await http.get(
+          Uri.parse('$bridgeUrl/play?series_id=$seriesId&ep=${episodeIndex ?? 1}&api_key=$apiKey'),
+          headers: {'x-api-key': apiKey},
+        ).timeout(const Duration(seconds: 8));
+        if (pRes.statusCode == 200) {
+          final pData = jsonDecode(pRes.body) as Map<String, dynamic>;
+          final eps = pData['episodes'] as List<dynamic>? ?? [];
+          final match = eps.where((e) => '${e['vid']}' == vid || e['index'] == episodeIndex).firstOrNull;
+          if (match != null) {
+            final st = match['stream_url'] as String? ?? match['encrypted_url'] as String?;
+            if (st != null && st.isNotEmpty) {
+              if (st.startsWith('http')) return st;
+              return '$bridgeUrl$st${st.contains('?') ? '&' : '?'}api_key=$apiKey';
+            }
+          }
+        }
+      } catch (_) {}
+
       return '$bridgeUrl/stream?vid=$vid&api_key=$apiKey';
     }
 
@@ -1247,10 +1284,9 @@ class HongguoService {
     if (a.isEmpty || b.isEmpty) return false;
     if (a == b) return true;
 
-    // Both titles must have at least 3 chars and substantial overlap
-    if (k.length >= 3 && b.contains(k)) return true;
-    if (a.length >= 3 && b.contains(a)) return true;
-    if (b.length >= 3 && a.contains(b)) return true;
+    if (k.length >= 2 && b.contains(k)) return true;
+    if (a.length >= 2 && b.contains(a)) return true;
+    if (b.length >= 2 && a.contains(b)) return true;
 
     return false;
   }

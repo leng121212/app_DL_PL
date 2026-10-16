@@ -509,10 +509,11 @@ class DownloadManager with ChangeNotifier {
       String playlistTxt = res.body;
       Uri variantUri = masterUri;
 
-      // Handle Master Playlist with variants (#EXT-X-STREAM-INF)
+      // Handle Master Playlist with variants (#EXT-X-STREAM-INF): Prefer 720p HD for fast downloads
       if (playlistTxt.contains('#EXT-X-STREAM-INF')) {
         final lines = playlistTxt.split('\n');
         String? bestVariantPath;
+        String? fallbackVariantPath;
         int highestBandwidth = 0;
 
         for (int i = 0; i < lines.length; i++) {
@@ -520,13 +521,17 @@ class DownloadManager with ChangeNotifier {
           if (line.startsWith('#EXT-X-STREAM-INF')) {
             final bwMatch = RegExp(r'BANDWIDTH=(\d+)').firstMatch(line);
             final bw = bwMatch != null ? int.tryParse(bwMatch.group(1)!) ?? 0 : 0;
+            final is720p = line.contains('720') || (bw >= 1000000 && bw <= 3200000);
 
             for (int j = i + 1; j < lines.length; j++) {
               final nextL = lines[j].trim();
               if (nextL.isNotEmpty && !nextL.startsWith('#')) {
-                if (bw >= highestBandwidth || bestVariantPath == null) {
-                  highestBandwidth = bw;
+                if (is720p && bestVariantPath == null) {
                   bestVariantPath = nextL;
+                }
+                if (bw >= highestBandwidth || fallbackVariantPath == null) {
+                  highestBandwidth = bw;
+                  fallbackVariantPath = nextL;
                 }
                 break;
               }
@@ -534,8 +539,9 @@ class DownloadManager with ChangeNotifier {
           }
         }
 
-        if (bestVariantPath != null) {
-          variantUri = masterUri.resolve(bestVariantPath);
+        final chosenVariant = bestVariantPath ?? fallbackVariantPath;
+        if (chosenVariant != null) {
+          variantUri = masterUri.resolve(chosenVariant);
           final vRes = await client.get(
             variantUri,
             headers: {

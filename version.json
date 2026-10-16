@@ -1,7 +1,7 @@
 {
-  "version": "1.0.3",
-  "versionCode": 4,
-  "changelog": "- ដោះស្រាយបញ្ហាទាញយករឿងដដែលៗលើ Hongguo ដោយបំបាត់ Fallback ខុសរឿង\n- បង្កើន Timeout ដល់ 60s និងសម្រួល Concurrency ការពារកុំឱ្យ Error TimeoutException\n- បន្ថែមមុខងារស្វែងរករឿងតាមឈ្មោះលើ Hongguo និងបោះបង់ Task បរាជ័យចេញពីបញ្ជីភ្លាមៗ",
+  "version": "1.0.4",
+  "versionCode": 5,
+  "changelog": "- អាប់ដេតប្រព័ន្ធទាញយកវីដេអូដូច Version PC (720p HD & TMTS Fast Stream)\n- ជួសជុលបញ្ហាទាញយក iQIYI / 20+ Web ដោយបន្ថែម TMTS Stream Resolver\n- កែលម្អការទាញយក Hongguo តាមរយៈ Video URL API & Mirror Search\n- បង្កើនល្បឿនទាញយក និងជួសជុលបញ្ហា Error កកស្ទះ",
   "downloadUrl": "https://github.com/leng121212/app_DL_PL/releases/latest/download/Trabekprey-DL-Pro-Release.apk",
   "forceUpdate": false
 }

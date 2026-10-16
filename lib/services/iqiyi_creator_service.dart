@@ -254,6 +254,30 @@ class IqiyiCreatorService {
       }
 
       // If page URL like https://www.iqiyi.com/v_xxxx.html
+      // Query accelerator.js if it's an iQIYI web URL
+      if (rawQuery.contains('iqiyi.com/v_') || rawQuery.contains('iqiyi.com/')) {
+        try {
+          final accUri = Uri.parse('https://www.iqiyi.com/prelw/player/lw/lwplay/accelerator.js').replace(
+            queryParameters: {'apiVer': '3', 'lwaver': _appVersion, 'appver': _appVersion},
+          );
+          final accResp = await http.get(accUri, headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Referer': rawQuery.startsWith('http') ? rawQuery : 'https://$rawQuery',
+          }).timeout(const Duration(seconds: 10));
+          if (accResp.statusCode == 200) {
+            final accM = RegExp(r'window\.QiyiPlayerProphetData\s*=\s*(\{.*?\});', dotAll: true).firstMatch(accResp.body);
+            if (accM != null) {
+              final pdata = json.decode(accM.group(1)!) as Map<String, dynamic>;
+              final vid = '${pdata['tvId'] ?? pdata['tvid'] ?? ''}';
+              final vinfo = pdata['videoInfo'] as Map<String, dynamic>? ?? {};
+              final aid = '${vinfo['albumId'] ?? ''}';
+              if (vid.isNotEmpty && vid != '0') videoId = vid;
+              if (aid.isNotEmpty && aid != '0') entityId = aid;
+            }
+          }
+        } catch (_) {}
+      }
+
       if (rawQuery.contains('iqiyi.com/v_') || rawQuery.contains('iqiyi.com/')) {
         final pageResp = await http.get(
           Uri.parse(rawQuery),
@@ -325,7 +349,25 @@ class IqiyiCreatorService {
       if (resp.statusCode != 200) return null;
 
       final jsonMap = json.decode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
-      final template = jsonMap['data']?['template'];
+      var template = jsonMap['data']?['template'];
+
+      if (template == null && entityId != null && videoId != null && queryId != videoId) {
+        params['entity_id'] = videoId;
+        params['timestamp'] = DateTime.now().millisecondsSinceEpoch;
+        params['sign'] = _generateSign(params);
+        final fallbackUri = Uri.parse('https://mesh.if.iqiyi.com/tvg/v2/lw/base_info').replace(
+          queryParameters: params.map((k, v) => MapEntry(k, v.toString())),
+        );
+        final fbResp = await http.get(fallbackUri, headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Referer': rawQuery.startsWith('http') ? rawQuery : 'https://www.iqiyi.com/',
+        }).timeout(const Duration(seconds: 15));
+        if (fbResp.statusCode == 200) {
+          final fbJson = json.decode(utf8.decode(fbResp.bodyBytes)) as Map<String, dynamic>;
+          template = fbJson['data']?['template'];
+        }
+      }
+
       if (template == null) return null;
 
       final tabs = template['tabs'] as List<dynamic>? ?? [];
@@ -465,7 +507,54 @@ class IqiyiCreatorService {
       final videos = dash['data']?['program']?['video'] as List<dynamic>? ?? [];
       if (videos.isEmpty) return null;
 
-      // Prefer highest quality H.264 or H.265 m3u8
+      final tvid = '${dash['data']?['tvid'] ?? prophet['tvid'] ?? prophet['tvId'] ?? ''}';
+      final vid = videos.isNotEmpty ? '${videos[0]['vid'] ?? ''}' : '';
+
+      // 1. Primary: Use TMTS API (returns verified playable m3utx without HTTP 405 error)
+      if (tvid.isNotEmpty && vid.isNotEmpty) {
+        try {
+          final tm = DateTime.now().millisecondsSinceEpoch;
+          const key = 'd5fb4bd9d50c4be6948c97edd7254b0e';
+          final sc = md5.convert(utf8.encode('$tm$key$tvid')).toString();
+          final tmtsUri = Uri.parse('http://cache.m.iqiyi.com/jp/tmts/$tvid/$vid/').replace(
+            queryParameters: {
+              'tvid': tvid,
+              'vid': vid,
+              'src': '76f90cbd92f94a2e925d83e8ccd22cb7',
+              'sc': sc,
+              't': '$tm',
+            },
+          );
+          final tmtsRes = await http.get(
+            tmtsUri,
+            headers: {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15'},
+          ).timeout(const Duration(seconds: 10));
+
+          if (tmtsRes.statusCode == 200 && tmtsRes.body.contains('{')) {
+            final txt = tmtsRes.body;
+            final startIdx = txt.indexOf('{');
+            final endIdx = txt.lastIndexOf('}');
+            if (startIdx >= 0 && endIdx >= startIdx) {
+              final rawJson = txt.substring(startIdx, endIdx + 1);
+              final tmtsData = json.decode(rawJson) as Map<String, dynamic>;
+              final tData = tmtsData['data'] as Map<String, dynamic>? ?? {};
+              if (tData['m3utx'] != null && '${tData['m3utx']}'.isNotEmpty) {
+                return '${tData['m3utx']}';
+              }
+              final vidl = tData['vidl'] as List<dynamic>? ?? [];
+              for (final s in vidl) {
+                if (s['m3utx'] != null && '${s['m3utx']}'.isNotEmpty) {
+                  return '${s['m3utx']}';
+                }
+              }
+            }
+          }
+        } catch (ex) {
+          debugPrint('TMTS stream fetch notice: $ex');
+        }
+      }
+
+      // 2. Secondary fallback: Prefer highest quality H.264 or H.265 m3u8
       String? bestM3u8;
       int highestBid = 0;
 
