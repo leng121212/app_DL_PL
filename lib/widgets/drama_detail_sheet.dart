@@ -257,8 +257,6 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
   }
 
   void _showHongguoBridgeDialog() async {
-    final initialUrl = await HongguoService.getBridgeUrl();
-    final ipController = TextEditingController(text: initialUrl);
     bool testing = false;
     String? statusMessage;
     bool isSuccess = _isBridgeActive;
@@ -281,8 +279,8 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
                   Icon(Icons.bolt_rounded, color: AppTheme.cyanAccent),
                   SizedBox(width: 8),
                   Text(
-                    'Hongguo Pro Engine Bridge',
-                    style: TextStyle(fontSize: 16, color: AppTheme.textPrimary, fontWeight: FontWeight.bold),
+                    'Hongguo VIP Cloudflare Auto-Sync',
+                    style: TextStyle(fontSize: 15, color: AppTheme.textPrimary, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -318,8 +316,8 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
                               children: [
                                 Text(
                                   isSuccess
-                                      ? 'Engine Status: Online 🟢'
-                                      : 'Engine Status: Offline 🔴',
+                                      ? 'Cloudflare Bridge: Online 🟢'
+                                      : 'Cloudflare Bridge: Offline 🔴',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
@@ -329,8 +327,8 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
                                 const SizedBox(height: 2),
                                 Text(
                                   isSuccess
-                                      ? 'បានភ្ជាប់រួចរាល់ អាចទាញយក Full Episodes 1080p បាន'
-                                      : 'មិនទាន់ភ្ជាប់ទៅកាន់ Server លើ PC នៅឡើយទេ',
+                                      ? 'បានភ្ជាប់ Cloudflare ស្វ័យប្រវត្តិរួចរាល់ អាចទាញយក VIP បាន'
+                                      : 'សូមបើក START_SERVER_FOR_APP.bat លើ PC ដើម្បី Unlock',
                                   style: const TextStyle(fontSize: 10.5, color: AppTheme.textSecondary, height: 1.3),
                                 ),
                               ],
@@ -339,69 +337,12 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 12),
                     const Text(
-                      'អាសយដ្ឋាន Server លើ PC (Wi-Fi IP ឬ Cloud Link):',
-                      style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-                    ),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: ipController,
-                      style: const TextStyle(fontSize: 13, color: Colors.white),
-                      decoration: InputDecoration(
-                        hintText: 'ឧ. http://192.168.18.5:8000',
-                        hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
-                        prefixIcon: const Icon(Icons.dns_rounded, size: 18, color: AppTheme.cyanAccent),
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.paste_rounded, size: 16, color: AppTheme.cyanAccent),
-                          tooltip: 'Paste',
-                          onPressed: () async {
-                            final data = await Clipboard.getData('text/plain');
-                            if (data?.text != null) {
-                              setDialogState(() {
-                                ipController.text = data!.text!.trim();
-                              });
-                            }
-                          },
-                        ),
-                        filled: true,
-                        fillColor: Colors.black26,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.cardBorder)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.cardBorder)),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.cyanAccent)),
-                      ),
+                      'ប្រព័ន្ធនឹងភ្ជាប់ Cloudflare ទៅកាន់ PC ដោយស្វ័យប្រវត្តិ 100% មិនបាច់វាយបញ្ចូល IP ឡើយ។',
+                      style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary, height: 1.4),
                     ),
                     const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: [
-                        ActionChip(
-                          avatar: const Icon(Icons.wifi, size: 12, color: AppTheme.cyanAccent),
-                          label: const Text('Wi-Fi PC (192.168.18.5)', style: TextStyle(fontSize: 10.5)),
-                          backgroundColor: AppTheme.cardBg,
-                          side: const BorderSide(color: AppTheme.cardBorder),
-                          onPressed: () {
-                            setDialogState(() {
-                              ipController.text = 'http://192.168.18.5:8000';
-                            });
-                          },
-                        ),
-                        ActionChip(
-                          avatar: const Icon(Icons.computer, size: 12, color: AppTheme.textSecondary),
-                          label: const Text('Emulator (10.0.2.2)', style: TextStyle(fontSize: 10.5)),
-                          backgroundColor: AppTheme.cardBg,
-                          side: const BorderSide(color: AppTheme.cardBorder),
-                          onPressed: () {
-                            setDialogState(() {
-                              ipController.text = 'http://10.0.2.2:8000';
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
@@ -416,7 +357,7 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
                           SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              '💡 សូមបើក START_SERVER_FOR_APP.bat លើ PC រួចបញ្ចូល IP ខាងលើ ដើម្បីដោនឡូតរឿងភាគ Hongguo គ្រប់ភាគ Full Episodes 1080p!',
+                              '💡 គ្រាន់តែបើក START_SERVER_FOR_APP.bat លើ PC App នឹងភ្ជាប់ Cloudflare ស្វ័យប្រវត្តិភ្លាមៗ!',
                               style: TextStyle(fontSize: 10.5, color: Colors.amber, height: 1.3),
                             ),
                           ),
@@ -461,85 +402,38 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
                   onPressed: () => Navigator.pop(dialogCtx),
                   child: const Text('បិទ (Close)', style: TextStyle(color: AppTheme.textSecondary)),
                 ),
-                TextButton.icon(
-                  icon: const Icon(Icons.sync_rounded, size: 15, color: AppTheme.cyanAccent),
-                  label: const Text('Auto-Sync Cloud', style: TextStyle(color: AppTheme.cyanAccent, fontSize: 11.5)),
-                  onPressed: testing
-                      ? null
-                      : () async {
-                          setDialogState(() {
-                            testing = true;
-                            statusMessage = 'កំពុងទាញយក Link ពី Cloud...';
-                          });
-                          final cloud = await HongguoService.fetchAutoBridgeFromCloud();
-                          if (cloud['online'] == true && cloud['url'] != null) {
-                            ipController.text = cloud['url'];
-                            final ok = await HongguoService.checkBridgeConnection(cloud['url']);
-                            setDialogState(() {
-                              testing = false;
-                              isSuccess = ok;
-                              statusMessage = ok
-                                  ? '✅ បានភ្ជាប់តាម Cloud ជោគជ័យ!'
-                                  : '❌ Cloud Link មិនឆ្លើយតប';
-                            });
-                            if (ok) {
-                              setState(() => _isBridgeActive = true);
-                              await _reloadDrama();
-                              await Future.delayed(const Duration(milliseconds: 700));
-                              if (mounted) Navigator.pop(dialogCtx);
-                            }
-                          } else {
-                            setDialogState(() {
-                              testing = false;
-                              isSuccess = false;
-                              statusMessage = cloud['message'] ?? '❌ មិនអាចទាញយក Cloud Link បានទេ';
-                            });
-                          }
-                        },
-                ),
                 ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.cyanAccent,
+                    foregroundColor: Colors.black,
+                  ),
                   icon: testing
                       ? const SizedBox(
                           width: 14,
                           height: 14,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
                         )
-                      : const Icon(Icons.bolt, size: 15),
-                  label: Text(testing ? 'កំពុងភ្ជាប់...' : 'ភ្ជាប់ (Connect)'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.cyanAccent,
-                    foregroundColor: Colors.black,
-                  ),
+                      : const Icon(Icons.sync_rounded, size: 15),
+                  label: Text(testing ? 'កំពុងភ្ជាប់ Cloud...' : 'ភ្ជាប់ស្វ័យប្រវត្តិឡើងវិញ (Sync Cloud)'),
                   onPressed: testing
                       ? null
                       : () async {
-                          final typedUrl = ipController.text.trim();
-                          if (typedUrl.isEmpty) {
-                            setDialogState(() {
-                              statusMessage = '⚠️ សូមបញ្ចូល Server IP ឬ Link';
-                              isSuccess = false;
-                            });
-                            return;
-                          }
-
                           setDialogState(() {
                             testing = true;
-                            statusMessage = 'កំពុងភ្ជាប់ទៅកាន់ Server...';
-                            isSuccess = false;
+                            statusMessage = 'កំពុង Sync Cloudflare ពី Cloud...';
                           });
 
-                          final ok = await HongguoService.checkBridgeConnection(typedUrl);
+                          final ok = await HongguoService.checkBridgeConnection();
 
                           setDialogState(() {
                             testing = false;
                             isSuccess = ok;
                             statusMessage = ok
-                                ? '✅ បានភ្ជាប់ជោគជ័យ! បើកដំណើរការ Full Episodes រួចរាល់។'
-                                : '❌ មិនអាចភ្ជាប់ទៅ $typedUrl បានទេ! សូមពិនិត្យមើលថាតើ PC បានបើក START_SERVER_FOR_APP.bat ហើយឬនៅ';
+                                ? '✅ បានភ្ជាប់ Cloudflare ជោគជ័យ! បើកដំណើរការ Full Episodes រួចរាល់។'
+                                : (HongguoService.cloudBridgeError ?? '❌ មិនទាន់អាចភ្ជាប់បានទេ! សូមពិនិត្យ PC Server');
                           });
 
                           if (ok) {
-                            await HongguoService.setBridgeUrl(typedUrl);
                             setState(() => _isBridgeActive = true);
                             await _reloadDrama();
                             await Future.delayed(const Duration(milliseconds: 700));
@@ -565,16 +459,16 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
         ),
-        child: Row(
+        child: const Row(
           children: [
-            const Icon(Icons.bolt_rounded, color: Colors.greenAccent, size: 20),
-            const SizedBox(width: 8),
-            const Expanded(
+            Icon(Icons.bolt_rounded, color: Colors.greenAccent, size: 20),
+            SizedBox(width: 8),
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '⚡ Hongguo Pro Engine: បានភ្ជាប់ (Connected)',
+                    '⚡ Hongguo Pro Engine: បានភ្ជាប់ Cloudflare (Connected)',
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.greenAccent),
                   ),
                   Text(
@@ -583,11 +477,6 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
                   ),
                 ],
               ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.settings, size: 18, color: Colors.greenAccent),
-              tooltip: 'កំណត់ IP Engine',
-              onPressed: _showHongguoBridgeDialog,
             ),
           ],
         ),
@@ -615,16 +504,26 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amberAccent),
                 ),
                 Text(
-                  'ចង់ដោនឡូតគ្រប់ភាគ 65+ ភាគពេញ? សូមភ្ជាប់ Hongguo Pro Engine!',
+                  'ចង់ដោនឡូតគ្រប់ភាគ 65+ ភាគពេញ? សូមបើក START_SERVER_FOR_APP.bat លើ PC!',
                   style: TextStyle(fontSize: 10, color: Colors.amberAccent),
                 ),
               ],
             ),
           ),
           ElevatedButton.icon(
-            onPressed: _showHongguoBridgeDialog,
-            icon: const Icon(Icons.bolt, size: 14),
-            label: const Text('ភ្ជាប់ Engine', style: TextStyle(fontSize: 11)),
+            onPressed: () async {
+              final ok = await HongguoService.checkBridgeConnection();
+              if (mounted) {
+                setState(() => _isBridgeActive = ok);
+                if (ok) {
+                  await _reloadDrama();
+                } else {
+                  _showHongguoBridgeDialog();
+                }
+              }
+            },
+            icon: const Icon(Icons.sync_rounded, size: 14),
+            label: const Text('ភ្ជាប់ Cloud', style: TextStyle(fontSize: 11)),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.amber,
               foregroundColor: Colors.black,

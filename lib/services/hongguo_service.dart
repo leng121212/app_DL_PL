@@ -70,51 +70,60 @@ class HongguoService {
   static bool? get isCloudBridgeOnline => _cloudBridgeOnline;
   static String? get cloudBridgeError => _cloudBridgeError;
 
-  /// Fetch active Bridge Tunnel URL automatically from Render License Server
+  /// Fetch active Bridge Tunnel URL automatically from GitHub / Cloud Server
   static Future<Map<String, dynamic>> fetchAutoBridgeFromCloud() async {
     if (_isSyncingCloud) {
       return {'online': _cloudBridgeOnline ?? false, 'message': 'Sync in progress'};
     }
     _isSyncingCloud = true;
     try {
-      final deviceHash = await LicenseService.instance.getDeviceHash();
-      final uri = Uri.parse('${LicenseService.serverUrl}/api/v1/bridge/active');
-      final resp = await http.get(
-        uri,
-        headers: {
-          'X-Device-Hash': deviceHash,
-          'Accept': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 8));
-
-      if (resp.statusCode == 200) {
-        final data = jsonDecode(resp.body) as Map<String, dynamic>;
-        final isOnline = data['is_online'] == true;
-        final bridgeUrl = data['bridge_url'] as String?;
-        if (isOnline && bridgeUrl != null && bridgeUrl.isNotEmpty) {
-          await setBridgeUrl(bridgeUrl);
-          _cloudBridgeOnline = true;
-          _isBridgeAvailable = true;
-          _cloudBridgeError = null;
-          return {'online': true, 'url': bridgeUrl};
-        } else {
-          _cloudBridgeOnline = false;
-          _isBridgeAvailable = false;
-          _cloudBridgeError = 'Admin PC Server មិនទាន់បើកនៅឡើយទេ';
-          return {'online': false, 'message': _cloudBridgeError};
+      // 1. Primary: Direct high-speed fetch from GitHub raw manifest (zero-config, always awake)
+      try {
+        final ghUri = Uri.parse('https://raw.githubusercontent.com/leng121212/app_DL_PL/main/bridge_info.json?t=${DateTime.now().millisecondsSinceEpoch}');
+        final ghResp = await http.get(ghUri).timeout(const Duration(seconds: 5));
+        if (ghResp.statusCode == 200) {
+          final ghData = jsonDecode(ghResp.body) as Map<String, dynamic>;
+          final isOnline = ghData['is_online'] == true;
+          final bridgeUrl = ghData['bridge_url'] as String?;
+          if (isOnline && bridgeUrl != null && bridgeUrl.isNotEmpty) {
+            await setBridgeUrl(bridgeUrl);
+            _cloudBridgeOnline = true;
+            _isBridgeAvailable = true;
+            _cloudBridgeError = null;
+            return {'online': true, 'url': bridgeUrl};
+          }
         }
-      } else if (resp.statusCode == 403) {
-        _cloudBridgeOnline = false;
-        _cloudBridgeError = 'គណនីមិនទាន់បាន Activate License នៅឡើយទេ';
-        return {'online': false, 'message': _cloudBridgeError};
-      } else {
-        _cloudBridgeOnline = false;
-        _cloudBridgeError = 'មិនអាចទាញយកទិន្នន័យ Server បានទេ';
-        return {'online': false, 'message': _cloudBridgeError};
-      }
-    } catch (_) {
+      } catch (_) {}
+
+      // 2. Secondary: Render License Server
+      try {
+        final deviceHash = await LicenseService.instance.getDeviceHash();
+        final uri = Uri.parse('${LicenseService.serverUrl}/api/v1/bridge/active');
+        final resp = await http.get(
+          uri,
+          headers: {
+            'X-Device-Hash': deviceHash,
+            'Accept': 'application/json',
+          },
+        ).timeout(const Duration(seconds: 6));
+
+        if (resp.statusCode == 200) {
+          final data = jsonDecode(resp.body) as Map<String, dynamic>;
+          final isOnline = data['is_online'] == true;
+          final bridgeUrl = data['bridge_url'] as String?;
+          if (isOnline && bridgeUrl != null && bridgeUrl.isNotEmpty) {
+            await setBridgeUrl(bridgeUrl);
+            _cloudBridgeOnline = true;
+            _isBridgeAvailable = true;
+            _cloudBridgeError = null;
+            return {'online': true, 'url': bridgeUrl};
+          }
+        }
+      } catch (_) {}
+
       _cloudBridgeOnline = false;
-      _cloudBridgeError = 'បញ្ហាភ្ជាប់អ៊ីនធឺណិតទៅកាន់ Cloud';
+      _isBridgeAvailable = false;
+      _cloudBridgeError = 'PC Server មិនទាន់បើកនៅឡើយទេ';
       return {'online': false, 'message': _cloudBridgeError};
     } finally {
       _isSyncingCloud = false;
@@ -123,78 +132,58 @@ class HongguoService {
 
   /// Check whether the Hongguo Pro Engine Bridge is running and reachable
   static Future<bool> checkBridgeConnection([String? testUrl]) async {
-    String target = (testUrl != null && testUrl.trim().isNotEmpty)
-        ? testUrl.trim()
-        : await getBridgeUrl();
-    if (!target.startsWith('http://') && !target.startsWith('https://')) {
-      target = 'http://$target';
-    }
-    final clean = target.endsWith('/') ? target.substring(0, target.length - 1) : target;
-
-    // 1. Instant root probe: GET / or /?api_key=... (Hongguo Engine responds in ~3ms)
-    try {
-      final probeUri = Uri.parse('$clean/?api_key=$apiKey');
-      final res = await http.get(
-        probeUri,
-        headers: {'x-api-key': apiKey},
-      ).timeout(const Duration(milliseconds: 3500));
-
-      if (res.statusCode == 200) {
-        if (testUrl != null && testUrl.isNotEmpty) {
-          await setBridgeUrl(clean);
-        }
-        _isBridgeAvailable = true;
-        _cloudBridgeOnline = true;
-        _cloudBridgeError = null;
-        return true;
-      }
-    } catch (_) {}
-
-    // 2. Full episodes probe: /episodes with 8s timeout
-    try {
-      final uri = Uri.parse('$clean/episodes?series_id=7685242510859308057&api_key=$apiKey');
-      final res = await http.get(
-        uri,
-        headers: {'x-api-key': apiKey},
-      ).timeout(const Duration(seconds: 8));
-
-      final ok = res.statusCode == 200;
-      if (ok) {
-        if (testUrl != null && testUrl.isNotEmpty) {
-          await setBridgeUrl(clean);
-        }
-        _isBridgeAvailable = true;
-        _cloudBridgeOnline = true;
-        _cloudBridgeError = null;
-        return true;
-      }
-    } catch (_) {}
-
-    // 3. Fallback: try cloud sync if no specific testUrl was forced
+    // 1. If no specific testUrl, always auto-sync Cloudflare tunnel from Cloud first!
     if (testUrl == null || testUrl.isEmpty) {
       final cloudRes = await fetchAutoBridgeFromCloud();
       if (cloudRes['online'] == true && cloudRes['url'] != null) {
         final liveUrl = (cloudRes['url'] as String).trim();
-        final cleanLive = liveUrl.endsWith('/') ? liveUrl.substring(0, liveUrl.length - 1) : liveUrl;
+        final clean = liveUrl.endsWith('/') ? liveUrl.substring(0, liveUrl.length - 1) : liveUrl;
         try {
-          final probeUri = Uri.parse('$cleanLive/?api_key=$apiKey');
+          final probeUri = Uri.parse('$clean/?api_key=$apiKey');
           final res = await http.get(
             probeUri,
             headers: {'x-api-key': apiKey},
           ).timeout(const Duration(milliseconds: 3500));
           if (res.statusCode == 200) {
-            await setBridgeUrl(cleanLive);
             _isBridgeAvailable = true;
             _cloudBridgeOnline = true;
             _cloudBridgeError = null;
             return true;
           }
-        } catch (_) {}
+        } catch (_) {
+          try {
+            final uri = Uri.parse('$clean/episodes?series_id=7685242510859308057&api_key=$apiKey');
+            final res = await http.get(uri, headers: {'x-api-key': apiKey}).timeout(const Duration(seconds: 8));
+            if (res.statusCode == 200) {
+              _isBridgeAvailable = true;
+              _cloudBridgeOnline = true;
+              _cloudBridgeError = null;
+              return true;
+            }
+          } catch (_) {}
+        }
       }
-      _isBridgeAvailable = false;
-      _cloudBridgeOnline = false;
     }
 
+    // 2. Direct probe for saved or specified URL
+    final target = (testUrl != null && testUrl.trim().isNotEmpty) ? testUrl.trim() : await getBridgeUrl();
+    final clean = target.endsWith('/') ? target.substring(0, target.length - 1) : target;
+    try {
+      final probeUri = Uri.parse('$clean/?api_key=$apiKey');
+      final res = await http.get(
+        probeUri,
+        headers: {'x-api-key': apiKey},
+      ).timeout(const Duration(milliseconds: 3000));
+      if (res.statusCode == 200) {
+        _isBridgeAvailable = true;
+        _cloudBridgeOnline = true;
+        _cloudBridgeError = null;
+        return true;
+      }
+    } catch (_) {}
+
+    _isBridgeAvailable = false;
+    _cloudBridgeOnline = false;
     return false;
   }
 

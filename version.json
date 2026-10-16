@@ -1,7 +1,7 @@
 {
-  "version": "1.0.5",
-  "versionCode": 6,
-  "changelog": "- កែលម្អការភ្ជាប់ជាមួយ Server លើ PC: អាចបញ្ចូល Wi-Fi IP (ឧ. http://192.168.18.5:8000) ឬ Cloud Tunnel ដោយផ្ទាល់\n- គាំទ្រការទាញយករឿងភាគ Hongguo គ្រប់ភាគ Full Episodes 1080p ឥតគិតថ្លៃតាមរយៈ PC Engine Server\n- បង្កើនល្បឿនត្រួតពិនិត្យការតភ្ជាប់ Engine (~3ms) និងពន្លឿនការទាញយក\n- ជួសជុលបញ្ហា Error 405 លើ 20+ Web និងជួសជុល Video Stream URL",
+  "version": "1.0.6",
+  "versionCode": 7,
+  "changelog": "- ភ្ជាប់ Cloudflare ដោយស្វ័យប្រវត្តិ 100% ពេលបើក App (មិនបាច់វាយបញ្ចូល IP ឬ Link ឡើយ)\n- ដោនឡូតរឿងភាគ Hongguo គ្រប់ភាគ Full Episodes 1080p ឥតគិតថ្លៃតាមរយៈ Cloudflare Bridge\n- ជួសជុលបញ្ហា Error 405 លើ 20+ Web និងជួសជុល Video Stream URL",
   "downloadUrl": "https://github.com/leng121212/app_DL_PL/releases/latest/download/Trabekprey-DL-Pro-Release.apk",
   "forceUpdate": false
 }
