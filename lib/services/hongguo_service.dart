@@ -123,45 +123,72 @@ class HongguoService {
 
   /// Check whether the Hongguo Pro Engine Bridge is running and reachable
   static Future<bool> checkBridgeConnection([String? testUrl]) async {
-    final target = (testUrl != null && testUrl.trim().isNotEmpty)
+    String target = (testUrl != null && testUrl.trim().isNotEmpty)
         ? testUrl.trim()
         : await getBridgeUrl();
+    if (!target.startsWith('http://') && !target.startsWith('https://')) {
+      target = 'http://$target';
+    }
     final clean = target.endsWith('/') ? target.substring(0, target.length - 1) : target;
-    final isLocal = clean.contains('192.168.') || clean.contains('10.') || clean.contains('127.0.0.1');
-    final timeoutDuration = isLocal ? const Duration(milliseconds: 1000) : const Duration(milliseconds: 2500);
+
+    // 1. Instant root probe: GET / or /?api_key=... (Hongguo Engine responds in ~3ms)
+    try {
+      final probeUri = Uri.parse('$clean/?api_key=$apiKey');
+      final res = await http.get(
+        probeUri,
+        headers: {'x-api-key': apiKey},
+      ).timeout(const Duration(milliseconds: 3500));
+
+      if (res.statusCode == 200) {
+        if (testUrl != null && testUrl.isNotEmpty) {
+          await setBridgeUrl(clean);
+        }
+        _isBridgeAvailable = true;
+        _cloudBridgeOnline = true;
+        _cloudBridgeError = null;
+        return true;
+      }
+    } catch (_) {}
+
+    // 2. Full episodes probe: /episodes with 8s timeout
     try {
       final uri = Uri.parse('$clean/episodes?series_id=7685242510859308057&api_key=$apiKey');
       final res = await http.get(
         uri,
         headers: {'x-api-key': apiKey},
-      ).timeout(timeoutDuration);
+      ).timeout(const Duration(seconds: 8));
 
       final ok = res.statusCode == 200;
-      if (testUrl == null || testUrl.isEmpty) {
-        _isBridgeAvailable = ok;
-      }
       if (ok) {
+        if (testUrl != null && testUrl.isNotEmpty) {
+          await setBridgeUrl(clean);
+        }
+        _isBridgeAvailable = true;
         _cloudBridgeOnline = true;
+        _cloudBridgeError = null;
         return true;
       }
     } catch (_) {}
 
-    // If direct check failed and no specific testUrl was forced, try auto-sync from cloud!
+    // 3. Fallback: try cloud sync if no specific testUrl was forced
     if (testUrl == null || testUrl.isEmpty) {
       final cloudRes = await fetchAutoBridgeFromCloud();
       if (cloudRes['online'] == true && cloudRes['url'] != null) {
         final liveUrl = (cloudRes['url'] as String).trim();
         final cleanLive = liveUrl.endsWith('/') ? liveUrl.substring(0, liveUrl.length - 1) : liveUrl;
         try {
-          final uri = Uri.parse('$cleanLive/episodes?series_id=7685242510859308057&api_key=$apiKey');
+          final probeUri = Uri.parse('$cleanLive/?api_key=$apiKey');
           final res = await http.get(
-            uri,
+            probeUri,
             headers: {'x-api-key': apiKey},
-          ).timeout(const Duration(milliseconds: 2500));
-          final ok = res.statusCode == 200;
-          _isBridgeAvailable = ok;
-          _cloudBridgeOnline = ok;
-          return ok;
+          ).timeout(const Duration(milliseconds: 3500));
+          if (res.statusCode == 200) {
+            await setBridgeUrl(cleanLive);
+            _isBridgeAvailable = true;
+            _cloudBridgeOnline = true;
+            _cloudBridgeError = null;
+            return true;
+          }
         } catch (_) {}
       }
       _isBridgeAvailable = false;
@@ -921,7 +948,7 @@ class HongguoService {
             title: 'EP${epIndex.toString().padLeft(2, '0')}',
             vid: vid,
             chapterName: '🟢 Full HD (1080p)',
-            streamUrl: '$bridgeUrl/stream?vid=$vid&api_key=$apiKey',
+            streamUrl: '$bridgeUrl/video_url?vid=$vid&api_key=$apiKey',
           ),
         );
 
@@ -1113,7 +1140,7 @@ class HongguoService {
         }
       } catch (_) {}
 
-      return '$bridgeUrl/stream?vid=$vid&api_key=$apiKey';
+      return '$bridgeUrl/video_url?vid=$vid&api_key=$apiKey';
     }
 
     // 2. Hongguo web routes episode streams via path segment /player/{series_id}/{vid}

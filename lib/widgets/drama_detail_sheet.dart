@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/drama_models.dart';
@@ -256,6 +257,8 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
   }
 
   void _showHongguoBridgeDialog() async {
+    final initialUrl = await HongguoService.getBridgeUrl();
+    final ipController = TextEditingController(text: initialUrl);
     bool testing = false;
     String? statusMessage;
     bool isSuccess = _isBridgeActive;
@@ -278,7 +281,7 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
                   Icon(Icons.bolt_rounded, color: AppTheme.cyanAccent),
                   SizedBox(width: 8),
                   Text(
-                    'Hongguo VIP Auto-Sync',
+                    'Hongguo Pro Engine Bridge',
                     style: TextStyle(fontSize: 16, color: AppTheme.textPrimary, fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -315,8 +318,8 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
                               children: [
                                 Text(
                                   isSuccess
-                                      ? 'VIP Server: Online 🟢'
-                                      : 'VIP Server: Offline 🔴',
+                                      ? 'Engine Status: Online 🟢'
+                                      : 'Engine Status: Offline 🔴',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
@@ -326,8 +329,8 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
                                 const SizedBox(height: 2),
                                 Text(
                                   isSuccess
-                                      ? 'ភ្ជាប់ Auto-Sync រួចរាល់ អាចទាញយក VIP បាន'
-                                      : 'Admin មិនទាន់បើក Server លើ PC នៅឡើយទេ',
+                                      ? 'បានភ្ជាប់រួចរាល់ អាចទាញយក Full Episodes 1080p បាន'
+                                      : 'មិនទាន់ភ្ជាប់ទៅកាន់ Server លើ PC នៅឡើយទេ',
                                   style: const TextStyle(fontSize: 10.5, color: AppTheme.textSecondary, height: 1.3),
                                 ),
                               ],
@@ -336,51 +339,89 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
                     const Text(
-                      'សម្រាប់ដោនរឿង Hongguo ដែលជាប់ VIP គឺត្រូវការ Server ពី Admin៖',
-                      style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary, height: 1.4),
+                      'អាសយដ្ឋាន Server លើ PC (Wi-Fi IP ឬ Cloud Link):',
+                      style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                     ),
-                    const SizedBox(height: 8),
-                    InkWell(
-                      onTap: () => openSafeUrl('https://t.me/Chhunleng1122'),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF24A1DE).withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFF24A1DE).withOpacity(0.5)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: ipController,
+                      style: const TextStyle(fontSize: 13, color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: 'ឧ. http://192.168.18.5:8000',
+                        hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                        prefixIcon: const Icon(Icons.dns_rounded, size: 18, color: AppTheme.cyanAccent),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.paste_rounded, size: 16, color: AppTheme.cyanAccent),
+                          tooltip: 'Paste',
+                          onPressed: () async {
+                            final data = await Clipboard.getData('text/plain');
+                            if (data?.text != null) {
+                              setDialogState(() {
+                                ipController.text = data!.text!.trim();
+                              });
+                            }
+                          },
                         ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CircleAvatar(
-                              radius: 10,
-                              backgroundColor: Color(0xFF24A1DE),
-                              child: Icon(Icons.send_rounded, size: 11, color: Colors.white),
-                            ),
-                            SizedBox(width: 8),
-                            Flexible(
-                              child: Text(
-                                'Admin ៖ Chhunleng (t.me/Chhunleng1122)',
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF54C5F8),
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 6),
-                            Icon(Icons.open_in_new_rounded, size: 13, color: Color(0xFF54C5F8)),
-                          ],
-                        ),
+                        filled: true,
+                        fillColor: Colors.black26,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.cardBorder)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.cardBorder)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.cyanAccent)),
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'ឬអាច Download រឿងពី Reelshort និង 20+ Web បានដោយមិនត្រូវការ Server',
-                      style: TextStyle(fontSize: 11, color: AppTheme.greenSuccess, height: 1.3),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        ActionChip(
+                          avatar: const Icon(Icons.wifi, size: 12, color: AppTheme.cyanAccent),
+                          label: const Text('Wi-Fi PC (192.168.18.5)', style: TextStyle(fontSize: 10.5)),
+                          backgroundColor: AppTheme.cardBg,
+                          side: const BorderSide(color: AppTheme.cardBorder),
+                          onPressed: () {
+                            setDialogState(() {
+                              ipController.text = 'http://192.168.18.5:8000';
+                            });
+                          },
+                        ),
+                        ActionChip(
+                          avatar: const Icon(Icons.computer, size: 12, color: AppTheme.textSecondary),
+                          label: const Text('Emulator (10.0.2.2)', style: TextStyle(fontSize: 10.5)),
+                          backgroundColor: AppTheme.cardBg,
+                          side: const BorderSide(color: AppTheme.cardBorder),
+                          onPressed: () {
+                            setDialogState(() {
+                              ipController.text = 'http://10.0.2.2:8000';
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                      ),
+                      child: const Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.info_outline, size: 14, color: Colors.amber),
+                          SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              '💡 សូមបើក START_SERVER_FOR_APP.bat លើ PC រួចបញ្ចូល IP ខាងលើ ដើម្បីដោនឡូតរឿងភាគ Hongguo គ្រប់ភាគ Full Episodes 1080p!',
+                              style: TextStyle(fontSize: 10.5, color: Colors.amber, height: 1.3),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     if (statusMessage != null) ...[
                       const SizedBox(height: 10),
@@ -420,7 +461,51 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
                   onPressed: () => Navigator.pop(dialogCtx),
                   child: const Text('បិទ (Close)', style: TextStyle(color: AppTheme.textSecondary)),
                 ),
-                ElevatedButton(
+                TextButton.icon(
+                  icon: const Icon(Icons.sync_rounded, size: 15, color: AppTheme.cyanAccent),
+                  label: const Text('Auto-Sync Cloud', style: TextStyle(color: AppTheme.cyanAccent, fontSize: 11.5)),
+                  onPressed: testing
+                      ? null
+                      : () async {
+                          setDialogState(() {
+                            testing = true;
+                            statusMessage = 'កំពុងទាញយក Link ពី Cloud...';
+                          });
+                          final cloud = await HongguoService.fetchAutoBridgeFromCloud();
+                          if (cloud['online'] == true && cloud['url'] != null) {
+                            ipController.text = cloud['url'];
+                            final ok = await HongguoService.checkBridgeConnection(cloud['url']);
+                            setDialogState(() {
+                              testing = false;
+                              isSuccess = ok;
+                              statusMessage = ok
+                                  ? '✅ បានភ្ជាប់តាម Cloud ជោគជ័យ!'
+                                  : '❌ Cloud Link មិនឆ្លើយតប';
+                            });
+                            if (ok) {
+                              setState(() => _isBridgeActive = true);
+                              await _reloadDrama();
+                              await Future.delayed(const Duration(milliseconds: 700));
+                              if (mounted) Navigator.pop(dialogCtx);
+                            }
+                          } else {
+                            setDialogState(() {
+                              testing = false;
+                              isSuccess = false;
+                              statusMessage = cloud['message'] ?? '❌ មិនអាចទាញយក Cloud Link បានទេ';
+                            });
+                          }
+                        },
+                ),
+                ElevatedButton.icon(
+                  icon: testing
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                        )
+                      : const Icon(Icons.bolt, size: 15),
+                  label: Text(testing ? 'កំពុងភ្ជាប់...' : 'ភ្ជាប់ (Connect)'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.cyanAccent,
                     foregroundColor: Colors.black,
@@ -428,36 +513,39 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
                   onPressed: testing
                       ? null
                       : () async {
+                          final typedUrl = ipController.text.trim();
+                          if (typedUrl.isEmpty) {
+                            setDialogState(() {
+                              statusMessage = '⚠️ សូមបញ្ចូល Server IP ឬ Link';
+                              isSuccess = false;
+                            });
+                            return;
+                          }
+
                           setDialogState(() {
                             testing = true;
-                            statusMessage = 'កំពុង Sync ភ្ជាប់ទៅកាន់ Server...';
+                            statusMessage = 'កំពុងភ្ជាប់ទៅកាន់ Server...';
                             isSuccess = false;
                           });
 
-                          final ok = await HongguoService.checkBridgeConnection();
+                          final ok = await HongguoService.checkBridgeConnection(typedUrl);
 
                           setDialogState(() {
                             testing = false;
                             isSuccess = ok;
                             statusMessage = ok
                                 ? '✅ បានភ្ជាប់ជោគជ័យ! បើកដំណើរការ Full Episodes រួចរាល់។'
-                                : (HongguoService.cloudBridgeError ?? '❌ មិនទាន់អាចភ្ជាប់បានទេ! សូមទាក់ទង Admin');
+                                : '❌ មិនអាចភ្ជាប់ទៅ $typedUrl បានទេ! សូមពិនិត្យមើលថាតើ PC បានបើក START_SERVER_FOR_APP.bat ហើយឬនៅ';
                           });
 
                           if (ok) {
+                            await HongguoService.setBridgeUrl(typedUrl);
                             setState(() => _isBridgeActive = true);
                             await _reloadDrama();
                             await Future.delayed(const Duration(milliseconds: 700));
                             if (mounted) Navigator.pop(dialogCtx);
                           }
                         },
-                  child: testing
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
-                        )
-                      : const Text('ពិនិត្យ & ភ្ជាប់ឡើងវិញ (Auto-Sync)'),
                 ),
               ],
             );
