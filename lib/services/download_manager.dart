@@ -22,6 +22,7 @@ class DownloadManager with ChangeNotifier {
   static const _channel = MethodChannel('com.trabekprey.downloader/storage');
 
   final List<DownloadTask> _tasks = [];
+  final Set<String> _activeRunningTaskIds = {};
   int _concurrency = 2;
   bool _isProcessing = false;
   Directory? _customBaseDir;
@@ -33,7 +34,7 @@ class DownloadManager with ChangeNotifier {
     notifyListeners();
   }
 
-  int get runningCount => _tasks.where((t) => t.status == TaskStatus.downloading).length;
+  int get runningCount => _activeRunningTaskIds.length;
   int get pendingCount => _tasks.where((t) => t.status == TaskStatus.pending).length;
   int get completedCount => _tasks.where((t) => t.status == TaskStatus.completed).length;
 
@@ -282,12 +283,16 @@ class DownloadManager with ChangeNotifier {
 
     try {
       while (true) {
-        final activeDownloads = _tasks
-            .where((t) => t.status == TaskStatus.downloading || t.status == TaskStatus.resolving)
-            .length;
-        if (activeDownloads >= _concurrency) {
-          await Future.delayed(const Duration(milliseconds: 500));
-          continue;
+        // Auto-recover any ghost/orphaned tasks marked downloading/resolving but not in active pool
+        for (final t in _tasks) {
+          if ((t.status == TaskStatus.downloading || t.status == TaskStatus.resolving) &&
+              !_activeRunningTaskIds.contains(t.taskId)) {
+            t.setStatus(TaskStatus.pending);
+          }
+        }
+
+        if (_activeRunningTaskIds.length >= _concurrency) {
+          break;
         }
 
         final nextTask = _tasks.where((t) => t.status == TaskStatus.pending).firstOrNull;
@@ -295,9 +300,12 @@ class DownloadManager with ChangeNotifier {
           break;
         }
 
+        // Reserve active slot
+        _activeRunningTaskIds.add(nextTask.taskId);
+
         // Run download asynchronously
         _executeTask(nextTask);
-        await Future.delayed(const Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 50));
       }
     } finally {
       _isProcessing = false;
@@ -328,15 +336,17 @@ class DownloadManager with ChangeNotifier {
           );
           task.setStatus(TaskStatus.completed);
           notifyListeners();
-          _processQueue();
           return;
         }
       }
 
-      // 2. Resolve stream URL if missing or if it's an episode page link
+      // 2. Resolve stream URL if missing or if it's an episode page link or bridge endpoint
       String? streamUrl = task.streamUrl;
       final needsResolution = streamUrl == null ||
           streamUrl.isEmpty ||
+          streamUrl.contains('/video_url') ||
+          streamUrl.contains('/stream?') ||
+          streamUrl.contains('/play?') ||
           streamUrl.contains('reelshort.com/episodes') ||
           streamUrl.contains('/episodes/') ||
           streamUrl.contains('iqiyi.com') ||
@@ -413,7 +423,6 @@ class DownloadManager with ChangeNotifier {
             : 'មិនអាចស្វែងរក Link វីដេអូបានទេ (Stream not found)';
         task.setStatus(TaskStatus.failed, err: errMsg);
         notifyListeners();
-        _processQueue();
         return;
       }
 
@@ -441,6 +450,7 @@ class DownloadManager with ChangeNotifier {
       task.setStatus(TaskStatus.failed, err: '$e');
       notifyListeners();
     } finally {
+      _activeRunningTaskIds.remove(task.taskId);
       _processQueue();
     }
   }
@@ -775,7 +785,10 @@ class DownloadManager with ChangeNotifier {
         request.headers['Accept-Encoding'] = 'identity';
         request.headers['Connection'] = 'keep-alive';
 
-        request.headers['Referer'] = _getRefererForTask(task, streamUrl);
+        final referer = _getRefererForTask(task, streamUrl);
+        if (referer.isNotEmpty) {
+          request.headers['Referer'] = referer;
+        }
 
         if (existingBytes > 0) {
           request.headers['Range'] = 'bytes=$existingBytes-';
@@ -826,7 +839,7 @@ class DownloadManager with ChangeNotifier {
         int lastReportedBytes = downloadedBytes;
         int lastReportedTime = 0;
 
-        await for (final chunk in response.stream) {
+        await for (final chunk in response.stream.timeout(const Duration(seconds: 25))) {
           if (task.status == TaskStatus.cancelled) {
             await sink.flush();
             await sink.close();
@@ -887,7 +900,7 @@ class DownloadManager with ChangeNotifier {
         client = null;
 
         final finalTempLen = await tempFile.length();
-        if ((totalBytes > 0 && finalTempLen >= totalBytes) || finalTempLen > 50 * 1024) {
+        if (finalTempLen > 50 * 1024 && (totalBytes == 0 || finalTempLen >= totalBytes)) {
           if (await outputFile.exists()) {
             await outputFile.delete();
           }
@@ -994,7 +1007,9 @@ class DownloadManager with ChangeNotifier {
   /// Pause all active tasks for a specific drama
   void pauseDrama(String dramaTitle) {
     for (final task in _tasks.where((t) => t.dramaTitle == dramaTitle)) {
-      if (task.status == TaskStatus.downloading) {
+      if (task.status == TaskStatus.downloading ||
+          task.status == TaskStatus.resolving ||
+          task.status == TaskStatus.pending) {
         task.setStatus(TaskStatus.paused);
       }
     }
@@ -1171,6 +1186,19 @@ class DownloadManager with ChangeNotifier {
   /// Derives correct HTTP Referer based on task platform and stream destination
   String _getRefererForTask(DownloadTask task, [String? url]) {
     final target = (url ?? task.streamUrl ?? '').toLowerCase();
+
+    // ByteDance / Hongguo CDN hosts reject third-party referers (returns 403 Forbidden)
+    if (target.contains('qznovelvod.com') ||
+        target.contains('ixigua.com') ||
+        target.contains('bytevcloud.com') ||
+        target.contains('ibytedtos.com') ||
+        target.contains('douyin.com') ||
+        target.contains('snssdk.com') ||
+        target.contains('toutiao.com') ||
+        target.contains('pstatp.com')) {
+      return '';
+    }
+
     if (task.platform == PlatformType.eightmovie || target.contains('8movie') || target.contains('dramasimida')) {
       return 'https://8movie.com/';
     } else if (task.platform == PlatformType.reelsdizim || target.contains('reelsdizim') || target.contains('dramaflix')) {

@@ -1128,8 +1128,6 @@ class HongguoService {
           }
         }
       } catch (_) {}
-
-      return '$bridgeUrl/video_url?vid=$vid&api_key=$apiKey';
     }
 
     // 2. Hongguo web routes episode streams via path segment /player/{series_id}/{vid}

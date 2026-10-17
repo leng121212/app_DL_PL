@@ -1,7 +1,7 @@
 {
-  "version": "1.0.6",
-  "versionCode": 7,
-  "changelog": "- ភ្ជាប់ Cloudflare ដោយស្វ័យប្រវត្តិ 100% ពេលបើក App (មិនបាច់វាយបញ្ចូល IP ឬ Link ឡើយ)\n- ដោនឡូតរឿងភាគ Hongguo គ្រប់ភាគ Full Episodes 1080p ឥតគិតថ្លៃតាមរយៈ Cloudflare Bridge\n- ជួសជុលបញ្ហា Error 405 លើ 20+ Web និងជួសជុល Video Stream URL",
+  "version": "1.0.7",
+  "versionCode": 8,
+  "changelog": "- ជួសជុលបញ្ហាទាញយកគាំងត្រឹមភាគ ៦ ឱ្យទាញយកបន្តដោយរលូន 100% គ្រប់ភាគ (Stall & Queue Deadlock Fix)\n- លុបបំបាត់ការលោតផ្ទាំង Update ដដែលៗបន្ទាប់ពីតម្លើងរួច (Infinite Update Loop Fix)\n- បន្ថែម Stream Timeout & Watchdog ការពារកុំឱ្យគាំង និងទាញយកវីដេអូកម្រិត Full HD ដោយស្វ័យប្រវត្ត",
   "downloadUrl": "https://github.com/leng121212/app_DL_PL/releases/latest/download/Trabekprey-DL-Pro-Release.apk",
   "forceUpdate": false
 }

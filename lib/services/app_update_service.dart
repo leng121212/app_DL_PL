@@ -30,8 +30,8 @@ class AppUpdateInfo {
 }
 
 class AppUpdateService {
-  static const currentVersion = '1.0.4';
-  static const currentVersionCode = 5;
+  static const String currentVersion = '1.0.7';
+  static const int currentVersionCode = 8;
 
   static const _channel = MethodChannel('com.trabekprey.downloader/storage');
 
