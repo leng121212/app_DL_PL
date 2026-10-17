@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import 'package:share_plus/share_plus.dart';
 import '../theme/app_theme.dart';
 
 class VideoPlayerModal extends StatefulWidget {
@@ -39,10 +40,24 @@ class _VideoPlayerModalState extends State<VideoPlayerModal> {
       await _controller.initialize();
       _controller.play();
       _controller.setLooping(true);
-      setState(() => _isInitialized = true);
+      if (mounted) setState(() => _isInitialized = true);
     } catch (e) {
-      setState(() => _error = '$e');
+      if (mounted) setState(() => _error = '$e');
     }
+  }
+
+  void _openExternalPlayer() {
+    try {
+      final file = File(widget.filePathOrUrl);
+      if (file.existsSync()) {
+        SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(widget.filePathOrUrl)],
+            text: widget.title,
+          ),
+        );
+      }
+    } catch (_) {}
   }
 
   @override
@@ -59,6 +74,8 @@ class _VideoPlayerModalState extends State<VideoPlayerModal> {
 
   @override
   Widget build(BuildContext context) {
+    final isLocalFile = !widget.filePathOrUrl.startsWith('http') && File(widget.filePathOrUrl).existsSync();
+
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -89,6 +106,12 @@ class _VideoPlayerModalState extends State<VideoPlayerModal> {
                       ),
                     ),
                   ),
+                  if (isLocalFile)
+                    IconButton(
+                      icon: const Icon(Icons.open_in_new_rounded, color: AppTheme.cyanAccent, size: 20),
+                      tooltip: 'បើកជាមួយកម្មវិធីផ្សេង (VLC/MX Player)',
+                      onPressed: _openExternalPlayer,
+                    ),
                   IconButton(
                     icon: const Icon(Icons.close, color: AppTheme.textMuted, size: 20),
                     onPressed: () => Navigator.pop(context),
@@ -109,10 +132,43 @@ class _VideoPlayerModalState extends State<VideoPlayerModal> {
                     Center(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
-                        child: Text(
-                          'មិនអាចបើកវីដេអូបានទេ:\n$_error',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: AppTheme.redDanger, fontSize: 12),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.warning_amber_rounded, color: AppTheme.amberWarning, size: 40),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'មិនអាចចាក់វីដេអូបានទេ',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _error!.contains('PlatformException')
+                                  ? 'ទម្រង់វីដេអូនេះត្រូវបើកជាមួយកម្មវិធីក្រៅ (VLC/MX Player)'
+                                  : '$_error',
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                            ),
+                            if (isLocalFile) ...[
+                              const SizedBox(height: 12),
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.cyanAccent,
+                                  foregroundColor: Colors.black,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                icon: const Icon(Icons.play_circle_outline, size: 18),
+                                label: const Text(
+                                  'បើកជាមួយកម្មវិធីផ្សេង',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                ),
+                                onPressed: _openExternalPlayer,
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     )

@@ -347,7 +347,7 @@ class DownloadManager with ChangeNotifier {
           task.vid != null &&
           task.vid!.isNotEmpty) {
         final bridgeUrl = await HongguoService.getBridgeUrl();
-        streamUrl = '$bridgeUrl/video_url?vid=${task.vid}&api_key=${HongguoService.apiKey}';
+        streamUrl = '$bridgeUrl/stream?vid=${task.vid}&api_key=${HongguoService.apiKey}';
         task.streamUrl = streamUrl;
       }
 

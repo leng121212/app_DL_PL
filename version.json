@@ -1,7 +1,7 @@
 {
-  "version": "1.1.0",
-  "versionCode": 11,
-  "changelog": "- ជួសជុលបញ្ហាទាញយកគាំងលើភាគ VIP និងភាគដែលប្រើ Codec ថ្មី (Support bytevc2/HEVC direct 720p streams)\n- ដោះស្រាយបញ្ហា HttpException: 404 និង Error ជាប់សោ VIP នៅលើភាគមួយចំនួន (ដូចជារឿង 玫瑰轻颤时)\n- Update Server & Engine Bridge ទៅ Version 1.0.9 ដោះស្រាយការទាញយកគ្រប់ភាគ 100%",
+  "version": "1.1.1",
+  "versionCode": 12,
+  "changelog": "- ជួសជុលបញ្ហា Error Play វីដេអូ (Video player had error Source error) ដោយធានាថាការទាញយកគ្រប់ភាគ Hongguo ត្រូវបាន Decrypt ស្វ័យប្រវត្តិតាមរយៈ Bridge Stream\n- ដោះស្រាយបញ្ហាផ្ទាំងខ្មៅ (Black screen) ដោយប្តូរទៅប្រើ Codec HEVC/H.264 ស្តង់ដារជំនួស bytevc2\n- បន្ថែមប៊ូតុងបើកជាមួយកម្មវិធីផ្សេង (VLC, MX Player, Gallery) នៅក្នុងផ្ទាំងចាក់វីដេអូ",
   "downloadUrl": "https://github.com/leng121212/app_DL_PL/releases/latest/download/Trabekprey-DL-Pro-Release.apk",
   "forceUpdate": false
 }
