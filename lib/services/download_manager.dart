@@ -806,7 +806,8 @@ class DownloadManager with ChangeNotifier {
               dramaTitle: task.dramaTitle,
               episodeIndex: task.episodeIndex,
             );
-          } else {
+          }
+          if (refreshedUrl == null || refreshedUrl.isEmpty || refreshedUrl == streamUrl) {
             refreshedUrl = await _crossResolveStream(task.dramaTitle, task.episodeIndex);
           }
           if (refreshedUrl != null && refreshedUrl.isNotEmpty && refreshedUrl != streamUrl) {
@@ -1195,6 +1196,11 @@ class DownloadManager with ChangeNotifier {
         target.contains('douyin.com') ||
         target.contains('snssdk.com') ||
         target.contains('toutiao.com') ||
+        target.contains('volces.com') ||
+        target.contains('bytedance') ||
+        target.contains('tos-cn') ||
+        target.contains('fqnovelpic.com') ||
+        target.contains('byteimg.com') ||
         target.contains('pstatp.com')) {
       return '';
     }
