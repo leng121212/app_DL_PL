@@ -6,8 +6,6 @@ import '../models/drama_models.dart';
 import 'license_service.dart';
 import 'eightmovie_service.dart';
 import 'beeplaylet_service.dart';
-import 'mydrama_service.dart';
-import 'bmp4_service.dart';
 
 class HongguoService {
   static const String baseUrl = 'https://hongguoduanju.com';
@@ -1094,27 +1092,32 @@ class HongguoService {
     // 1. If Bridge is active, return direct decrypted stream URL
     if (_isBridgeAvailable == true || await checkBridgeConnection()) {
       final bridgeUrl = await getBridgeUrl();
-      // 1. Try /video_url first (returns direct MP4 url)
-      try {
-        final vRes = await http.get(
-          Uri.parse('$bridgeUrl/video_url?vid=$vid&api_key=$apiKey'),
-          headers: {'x-api-key': apiKey},
-        ).timeout(const Duration(seconds: 8));
-        if (vRes.statusCode == 200) {
-          final vData = jsonDecode(vRes.body) as Map<String, dynamic>;
-          final directUrl = vData['url'] as String? ?? vData['backup'] as String?;
-          if (directUrl != null && directUrl.isNotEmpty) {
-            return directUrl;
+      // 1. Try /video_url with retry loop (up to 3 attempts with backoff)
+      for (int attempt = 1; attempt <= 3; attempt++) {
+        try {
+          final vRes = await http.get(
+            Uri.parse('$bridgeUrl/video_url?vid=$vid&api_key=$apiKey'),
+            headers: {'x-api-key': apiKey},
+          ).timeout(const Duration(seconds: 15));
+          if (vRes.statusCode == 200) {
+            final vData = jsonDecode(vRes.body) as Map<String, dynamic>;
+            final directUrl = vData['url'] as String? ?? vData['backup'] as String?;
+            if (directUrl != null && directUrl.isNotEmpty) {
+              return directUrl;
+            }
           }
+        } catch (_) {}
+        if (attempt < 3) {
+          await Future.delayed(Duration(milliseconds: 400 * attempt));
         }
-      } catch (_) {}
+      }
 
       // 2. Try /play (resolves stream_url from server)
       try {
         final pRes = await http.get(
           Uri.parse('$bridgeUrl/play?series_id=$seriesId&ep=${episodeIndex ?? 1}&api_key=$apiKey'),
           headers: {'x-api-key': apiKey},
-        ).timeout(const Duration(seconds: 8));
+        ).timeout(const Duration(seconds: 15));
         if (pRes.statusCode == 200) {
           final pData = jsonDecode(pRes.body) as Map<String, dynamic>;
           final eps = pData['episodes'] as List<dynamic>? ?? [];
@@ -1123,11 +1126,17 @@ class HongguoService {
             final st = match['stream_url'] as String? ?? match['encrypted_url'] as String?;
             if (st != null && st.isNotEmpty) {
               if (st.startsWith('http')) return st;
-              return '$bridgeUrl$st${st.contains('?') ? '&' : '?'}api_key=$apiKey';
+              final sep = st.contains('?') ? '&' : '?';
+              return '$bridgeUrl$st${sep}api_key=$apiKey';
             }
           }
         }
       } catch (_) {}
+
+      // 3. Direct bridge stream fallback
+      if (vid.isNotEmpty) {
+        return '$bridgeUrl/stream?vid=$vid&api_key=$apiKey';
+      }
     }
 
     // 2. Hongguo web routes episode streams via path segment /player/{series_id}/{vid}

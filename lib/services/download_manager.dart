@@ -342,10 +342,18 @@ class DownloadManager with ChangeNotifier {
 
       // 2. Resolve stream URL if missing or if it's an episode page link or bridge endpoint
       String? streamUrl = task.streamUrl;
+      if ((streamUrl == null || streamUrl.isEmpty) &&
+          task.platform == PlatformType.hongguo &&
+          task.vid != null &&
+          task.vid!.isNotEmpty) {
+        final bridgeUrl = await HongguoService.getBridgeUrl();
+        streamUrl = '$bridgeUrl/video_url?vid=${task.vid}&api_key=${HongguoService.apiKey}';
+        task.streamUrl = streamUrl;
+      }
+
       final needsResolution = streamUrl == null ||
           streamUrl.isEmpty ||
           streamUrl.contains('/video_url') ||
-          streamUrl.contains('/stream?') ||
           streamUrl.contains('/play?') ||
           streamUrl.contains('reelshort.com/episodes') ||
           streamUrl.contains('/episodes/') ||

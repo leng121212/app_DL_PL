@@ -313,7 +313,11 @@ class DownloadTask with ChangeNotifier {
 
   void setStatus(TaskStatus newStatus, {String? err}) {
     _status = newStatus;
-    if (err != null) _error = err;
+    if (err != null) {
+      _error = err;
+    } else if (newStatus == TaskStatus.pending || newStatus == TaskStatus.downloading) {
+      _error = null;
+    }
     notifyListeners();
   }
 }
