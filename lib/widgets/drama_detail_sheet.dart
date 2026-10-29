@@ -50,6 +50,13 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
           _selectedIndices.add(eps[i].index);
         }
         _rangeController.text = '1-$count';
+      } else if (_currentDrama.platform == PlatformType.dramabox) {
+        final freeEps = eps.where((e) => e.isFree && e.streamUrl != null && e.streamUrl!.isNotEmpty).toList();
+        final count = freeEps.isNotEmpty ? freeEps.length : (eps.length > 13 ? 13 : eps.length);
+        for (int i = 0; i < count; i++) {
+          _selectedIndices.add(eps[i].index);
+        }
+        _rangeController.text = '1-$count';
       } else {
         final initialCount = eps.length > 10 ? 10 : eps.length;
         for (int i = 0; i < initialCount; i++) {
@@ -227,6 +234,52 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
         if (proceed != true) return;
         selectedEps = selectedEps
             .where((e) => !(e.index > 3 && (e.streamUrl == null || e.streamUrl!.isEmpty)))
+            .toList();
+        if (selectedEps.isEmpty) return;
+      }
+    }
+
+    if (_currentDrama.platform == PlatformType.dramabox) {
+      final lockedSelected = selectedEps
+          .where((e) => !e.isFree && (e.streamUrl == null || e.streamUrl!.isEmpty))
+          .toList();
+      if (lockedSelected.isNotEmpty) {
+        final freeCount = eps.where((e) => e.isFree || (e.streamUrl != null && e.streamUrl!.isNotEmpty)).length;
+        final proceed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: AppTheme.cardBg,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.lock_rounded, color: AppTheme.amberWarning, size: 22),
+                SizedBox(width: 8),
+                Text('DramaBox Web VIP Lock',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+              ],
+            ),
+            content: Text(
+              'ភាគទី ${lockedSelected.first.index} ដល់ ${lockedSelected.last.index} (${lockedSelected.length} ភាគ) ជាប់សោ VIP នៅលើគេហទំព័រ DramaBox Web (អាចដោនឡូតបានដោយសេរីតែ $freeCount ភាគដំបូង)។\n\nតើលោកអ្នកចង់ទាញយកតែភាគឥតគិតថ្លៃ (Free EP 1-$freeCount) ដែរឬទេ?',
+              style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('ត្រឡប់ក្រោយ', style: TextStyle(color: AppTheme.textMuted)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.cyanAccent, foregroundColor: Colors.black),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text('ទាញយកតែភាគ 1-$freeCount', style: const TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        );
+
+        if (proceed != true) return;
+        selectedEps = selectedEps
+            .where((e) => e.isFree || (e.streamUrl != null && e.streamUrl!.isNotEmpty))
             .toList();
         if (selectedEps.isEmpty) return;
       }
@@ -536,6 +589,43 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
     );
   }
 
+  Widget _buildDramaboxBanner() {
+    final eps = _currentDrama.episodes ?? [];
+    final freeCount = eps.where((e) => e.isFree || (e.streamUrl != null && e.streamUrl!.isNotEmpty)).length;
+    if (freeCount <= 0 || freeCount >= eps.length) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.amber.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.amber.withOpacity(0.4)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline_rounded, color: Colors.amberAccent, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'DramaBox Web: ឥតគិតថ្លៃ $freeCount ភាគដំបូង',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amberAccent),
+                ),
+                Text(
+                  'ភាគ ${freeCount + 1} ដល់ ${eps.length} ជាប់សោ VIP នៅលើគេហទំព័រ DramaBox',
+                  style: const TextStyle(fontSize: 10, color: Colors.amberAccent),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final eps = _currentDrama.episodes ?? [];
@@ -657,6 +747,8 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
 
           if (_currentDrama.platform == PlatformType.hongguo)
             _buildHongguoBridgeBanner(),
+          if (_currentDrama.platform == PlatformType.dramabox)
+            _buildDramaboxBanner(),
 
           const Divider(color: AppTheme.cardBorder, height: 16),
 
@@ -767,6 +859,15 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
                       if (_currentDrama.platform == PlatformType.hongguo && !_isBridgeActive) ...[
                         _buildQuickPill('1-3 (Free)', () => _selectRange(1, 3)),
                       ],
+                      if (_currentDrama.platform == PlatformType.dramabox) ...[
+                        () {
+                          final freeCount = eps.where((e) => e.isFree || (e.streamUrl != null && e.streamUrl!.isNotEmpty)).length;
+                          if (freeCount > 0 && freeCount < eps.length) {
+                            return _buildQuickPill('1-$freeCount (Free)', () => _selectRange(1, freeCount));
+                          }
+                          return const SizedBox.shrink();
+                        }(),
+                      ],
                       _buildQuickPill('ទាំងអស់', _selectAll),
                       _buildQuickPill('1-10', () => _selectRange(1, 10)),
                       if (totalEps > 10) _buildQuickPill('11-20', () => _selectRange(11, 20)),
@@ -804,7 +905,9 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
                         final isSelected = _selectedIndices.contains(ep.index);
                         final isLocked = _currentDrama.platform == PlatformType.hongguo
                             ? (!_isBridgeActive && ep.index > 3 && (ep.streamUrl == null || ep.streamUrl!.isEmpty))
-                            : false;
+                            : (_currentDrama.platform == PlatformType.dramabox
+                                ? (!ep.isFree && (ep.streamUrl == null || ep.streamUrl!.isEmpty))
+                                : false);
                         final epLabel = (_currentDrama.platform == PlatformType.web20 ||
                                 _currentDrama.platform == PlatformType.hongguo ||
                                 ep.title.contains('集') ||

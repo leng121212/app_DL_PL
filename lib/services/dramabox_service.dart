@@ -199,6 +199,9 @@ class DramaboxService {
 
         final streamUrl = (stream != null && '$stream'.startsWith('http')) ? '$stream' : null;
 
+        final hasStream = streamUrl != null && streamUrl.isNotEmpty;
+        final isUnlocked = ch['unlock'] == true;
+
         episodes.add(
           EpisodeItem(
             index: chIndex,
@@ -206,7 +209,7 @@ class DramaboxService {
             chapterName: chName,
             chapterId: chId,
             streamUrl: streamUrl,
-            isFree: ch['unlock'] == true || streamUrl != null,
+            isFree: isUnlocked && hasStream,
           ),
         );
       }
