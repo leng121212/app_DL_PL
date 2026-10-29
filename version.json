@@ -1,7 +1,7 @@
 {
   "version": "1.1.2",
-  "versionCode": 13,
-  "changelog": "- បន្ថែម Platform ថ្មី DramaBox នៅខាងឆ្វេង Hongguo អាចទាញយកបាន Full Episodes\n- បញ្ចូលផ្ទាំងតារាងរឿង DramaBox ជាង 460 រឿងតាមប្រភេទផ្សេងៗ (Trending, Romance, Werewolf, Billionaire, Revenge)\n- កែសម្រួលប្រព័ន្ធទាញយកវីដេអូឱ្យកាន់តែរលូន និងមានស្ថេរភាពខ្ពស់",
+  "versionCode": 14,
+  "changelog": "- បន្ថែម Platform ថ្មី DramaBox នៅខាងឆ្វេង Hongguo អាចទាញយកបាន Full Episodes\n- បញ្ចូលផ្ទាំងតារាងរឿង DramaBox ជាង 460 រឿងតាមប្រភេទផ្សេងៗ\n- បំពាក់ Permanent Release Keystore ដើម្បីការពារកុំឱ្យជួបបញ្ហា App not installed នៅពេល Auto-Update",
   "downloadUrl": "https://github.com/leng121212/app_DL_PL/releases/latest/download/Trabekprey-DL-Pro-Release.apk",
   "forceUpdate": false
 }
