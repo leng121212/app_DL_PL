@@ -10,6 +10,7 @@ import 'hongguo_service.dart';
 import 'reelsdizim_service.dart';
 import 'reelshort_service.dart';
 import 'beeplaylet_service.dart';
+import 'dramabox_service.dart';
 import 'iqiyi_creator_service.dart';
 import 'eightmovie_service.dart';
 import 'bmp4_service.dart';
@@ -391,6 +392,10 @@ class DownloadManager with ChangeNotifier {
           streamUrl = ep?.streamUrl ?? streamUrl;
         } else if (task.platform == PlatformType.reelsdizim || (streamUrl != null && streamUrl.contains('reelsdizim'))) {
           final res = await ReelsDizimService.resolveDrama(task.seriesId ?? streamUrl ?? '');
+          final ep = res?.episodes?.where((e) => e.index == task.episodeIndex).firstOrNull;
+          streamUrl = ep?.streamUrl ?? streamUrl;
+        } else if (task.platform == PlatformType.dramabox && task.seriesId != null) {
+          final res = await DramaboxService.resolveDrama(task.seriesId!);
           final ep = res?.episodes?.where((e) => e.index == task.episodeIndex).firstOrNull;
           streamUrl = ep?.streamUrl ?? streamUrl;
         } else if (task.platform == PlatformType.beeplaylet && task.seriesId != null) {

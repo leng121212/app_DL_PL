@@ -10,6 +10,7 @@ import '../services/mydrama_service.dart';
 import '../services/reelsdizim_service.dart';
 import '../services/reelshort_service.dart';
 import '../services/beeplaylet_service.dart';
+import '../services/dramabox_service.dart';
 import '../services/iqiyi_creator_service.dart';
 import '../services/eightmovie_service.dart';
 import '../services/bmp4_service.dart';
@@ -89,6 +90,9 @@ class _HomeScreenState extends State<HomeScreen> {
     List<DramaItem> items = [];
     try {
       switch (_currentPlatform) {
+        case PlatformType.dramabox:
+          items = await DramaboxService.fetchCatalog(category: _selectedCategory, page: page, pageSize: _pageSize);
+          break;
         case PlatformType.hongguo:
           items = await HongguoService.fetchCatalog(category: _selectedCategory, page: page);
           break;
@@ -142,7 +146,11 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     // Auto-detect URL patterns and switch to appropriate platform
-    if (q.contains('novelquickapp.com') || q.contains('hongguoduanju.com') || q.contains('红果')) {
+    if (q.contains('dramabox') || RegExp(r'\b(42\d{9})\b').hasMatch(q)) {
+      if (_currentPlatform != PlatformType.dramabox) {
+        setState(() => _currentPlatform = PlatformType.dramabox);
+      }
+    } else if (q.contains('novelquickapp.com') || q.contains('hongguoduanju.com') || q.contains('红果')) {
       if (_currentPlatform != PlatformType.hongguo) {
         setState(() => _currentPlatform = PlatformType.hongguo);
       }
@@ -165,6 +173,22 @@ class _HomeScreenState extends State<HomeScreen> {
     DramaItem? resolved;
     try {
       switch (_currentPlatform) {
+        case PlatformType.dramabox:
+          resolved = await DramaboxService.resolveDrama(q);
+          if (resolved == null) {
+            final dbxMatches = await DramaboxService.search(q);
+            if (dbxMatches.isNotEmpty) {
+              setState(() {
+                _catalogItems = dbxMatches;
+                _isResolving = false;
+              });
+              if (_catalogScrollController.hasClients) {
+                _catalogScrollController.jumpTo(0);
+              }
+              return;
+            }
+          }
+          break;
         case PlatformType.hongguo:
           resolved = await HongguoService.resolveDrama(q);
           if (resolved == null) {
@@ -265,6 +289,9 @@ class _HomeScreenState extends State<HomeScreen> {
       DramaItem? full;
       try {
         switch (drama.platform) {
+          case PlatformType.dramabox:
+            full = await DramaboxService.resolveDrama(drama.id);
+            break;
           case PlatformType.hongguo:
             full = await HongguoService.resolveDrama(drama.id);
             break;
@@ -516,6 +543,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildPlatformTabs() {
     const topPlatforms = [
+      PlatformType.dramabox,
       PlatformType.hongguo,
       PlatformType.reelshort,
       PlatformType.web20,
@@ -792,6 +820,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   int _getTotalPages() {
     switch (_currentPlatform) {
+      case PlatformType.dramabox:
+        return 30;
       case PlatformType.hongguo:
         if (_selectedCategory == 'most_episodes') return 10;
         return _selectedCategory == 'all' ? 80 : 34;

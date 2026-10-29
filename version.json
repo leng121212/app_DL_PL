@@ -1,7 +1,7 @@
 {
-  "version": "1.1.1",
-  "versionCode": 12,
-  "changelog": "- ជួសជុលបញ្ហា Error Play វីដេអូ (Video player had error Source error) ដោយធានាថាការទាញយកគ្រប់ភាគ Hongguo ត្រូវបាន Decrypt ស្វ័យប្រវត្តិតាមរយៈ Bridge Stream\n- ដោះស្រាយបញ្ហាផ្ទាំងខ្មៅ (Black screen) ដោយប្តូរទៅប្រើ Codec HEVC/H.264 ស្តង់ដារជំនួស bytevc2\n- បន្ថែមប៊ូតុងបើកជាមួយកម្មវិធីផ្សេង (VLC, MX Player, Gallery) នៅក្នុងផ្ទាំងចាក់វីដេអូ",
+  "version": "1.1.2",
+  "versionCode": 13,
+  "changelog": "- បន្ថែម Platform ថ្មី DramaBox នៅខាងឆ្វេង Hongguo អាចទាញយកបាន Full Episodes\n- បញ្ចូលផ្ទាំងតារាងរឿង DramaBox ជាង 460 រឿងតាមប្រភេទផ្សេងៗ (Trending, Romance, Werewolf, Billionaire, Revenge)\n- កែសម្រួលប្រព័ន្ធទាញយកវីដេអូឱ្យកាន់តែរលូន និងមានស្ថេរភាពខ្ពស់",
   "downloadUrl": "https://github.com/leng121212/app_DL_PL/releases/latest/download/Trabekprey-DL-Pro-Release.apk",
   "forceUpdate": false
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 enum PlatformType {
+  dramabox,
   hongguo,
   reelshort,
   web20,
@@ -14,6 +15,8 @@ enum PlatformType {
 extension PlatformTypeExtension on PlatformType {
   String get id {
     switch (this) {
+      case PlatformType.dramabox:
+        return 'dramabox';
       case PlatformType.hongguo:
         return 'hongguo';
       case PlatformType.reelshort:
@@ -35,6 +38,8 @@ extension PlatformTypeExtension on PlatformType {
 
   String get displayName {
     switch (this) {
+      case PlatformType.dramabox:
+        return 'DramaBox';
       case PlatformType.hongguo:
         return 'Hongguo (红果)';
       case PlatformType.reelshort:
@@ -56,6 +61,8 @@ extension PlatformTypeExtension on PlatformType {
 
   String? get assetIcon {
     switch (this) {
+      case PlatformType.dramabox:
+        return 'assets/dramabox-logo.png';
       case PlatformType.hongguo:
         return 'assets/hongguo-logo.png';
       case PlatformType.reelshort:
@@ -72,6 +79,8 @@ extension PlatformTypeExtension on PlatformType {
 
   String get emojiFallback {
     switch (this) {
+      case PlatformType.dramabox:
+        return '📦';
       case PlatformType.hongguo:
         return '🍎';
       case PlatformType.reelshort:
@@ -93,6 +102,8 @@ extension PlatformTypeExtension on PlatformType {
 
   String get hintText {
     switch (this) {
+      case PlatformType.dramabox:
+        return 'បញ្ចូល DramaBox URL (dramaboxdb.com/movie/...) ឬ Book ID...';
       case PlatformType.hongguo:
         return 'បញ្ចូល Series ID ឬ Link (hongguoduanju.com/detail?series_id=...)';
       case PlatformType.reelshort:
