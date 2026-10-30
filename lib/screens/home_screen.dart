@@ -753,10 +753,10 @@ class _HomeScreenState extends State<HomeScreen> {
         ];
         break;
       case PlatformType.reelshort:
-        categories = ReelshortService.categories;
+        categories = ReelshortService.getCategories();
         break;
       case PlatformType.web20:
-        categories = IqiyiCreatorService.categories;
+        categories = DramaCategoryHelper.getCategories();
         break;
       case PlatformType.bmp4:
       case PlatformType.mydrama:
