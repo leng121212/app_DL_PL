@@ -239,7 +239,7 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
       }
     }
 
-    if (_currentDrama.platform == PlatformType.dramabox) {
+    if (_currentDrama.platform == PlatformType.dramabox && !_isBridgeActive) {
       final lockedSelected = selectedEps
           .where((e) => !e.isFree && (e.streamUrl == null || e.streamUrl!.isEmpty))
           .toList();
@@ -590,6 +590,39 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
   }
 
   Widget _buildDramaboxBanner() {
+    if (_isBridgeActive) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.green.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.bolt_rounded, color: Colors.greenAccent, size: 20),
+            SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '⚡ DramaBox VIP Engine: បានភ្ជាប់ Cloudflare (Connected)',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.greenAccent),
+                  ),
+                  Text(
+                    'ដោនឡូតបានគ្រប់ភាគទាំងអស់ 1080p Full Episodes (គ្មានដែនកំណត់)!',
+                    style: TextStyle(fontSize: 10, color: Colors.white70),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     final eps = _currentDrama.episodes ?? [];
     final freeCount = eps.where((e) => e.isFree || (e.streamUrl != null && e.streamUrl!.isNotEmpty)).length;
     if (freeCount <= 0 || freeCount >= eps.length) return const SizedBox.shrink();
@@ -615,10 +648,31 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amberAccent),
                 ),
                 Text(
-                  'ភាគ ${freeCount + 1} ដល់ ${eps.length} ជាប់សោ VIP នៅលើគេហទំព័រ DramaBox',
+                  'ភាគ ${freeCount + 1} ដល់ ${eps.length} ជាប់សោ VIP (បើក Run_App_server.bat ដើម្បី Unlock គ្រប់ភាគ)',
                   style: const TextStyle(fontSize: 10, color: Colors.amberAccent),
                 ),
               ],
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () async {
+              final ok = await HongguoService.checkBridgeConnection();
+              if (mounted) {
+                setState(() => _isBridgeActive = ok);
+                if (ok) {
+                  await _reloadDrama();
+                } else {
+                  _showHongguoBridgeDialog();
+                }
+              }
+            },
+            icon: const Icon(Icons.sync_rounded, size: 14),
+            label: const Text('ភ្ជាប់ Cloud', style: TextStyle(fontSize: 11)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.amber,
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              elevation: 0,
             ),
           ),
         ],
@@ -906,7 +960,7 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
                         final isLocked = _currentDrama.platform == PlatformType.hongguo
                             ? (!_isBridgeActive && ep.index > 3 && (ep.streamUrl == null || ep.streamUrl!.isEmpty))
                             : (_currentDrama.platform == PlatformType.dramabox
-                                ? (!ep.isFree && (ep.streamUrl == null || ep.streamUrl!.isEmpty))
+                                ? (!_isBridgeActive && !ep.isFree && (ep.streamUrl == null || ep.streamUrl!.isEmpty))
                                 : false);
                         final epLabel = (_currentDrama.platform == PlatformType.web20 ||
                                 _currentDrama.platform == PlatformType.hongguo ||

@@ -102,12 +102,20 @@ class _HomeScreenState extends State<HomeScreen> {
         case PlatformType.web20:
           items = await IqiyiCreatorService.fetchCatalogByCategory(category: _selectedCategory, page: page, pageSize: _pageSize);
           break;
-        case PlatformType.bmp4:
-        case PlatformType.eightmovie:
-        case PlatformType.beeplaylet:
-        case PlatformType.mydrama:
         case PlatformType.reelsdizim:
-          items = await BeeplayletService.fetchCatalog(page: page);
+          items = await ReelsDizimService.fetchCatalog(category: _selectedCategory, page: page);
+          break;
+        case PlatformType.beeplaylet:
+          items = await BeeplayletService.fetchCatalog(category: _selectedCategory, page: page);
+          break;
+        case PlatformType.bmp4:
+          items = await Bmp4Service.fetchCatalog(page: page);
+          break;
+        case PlatformType.mydrama:
+          items = await MyDramaService.fetchCatalog(page: page);
+          break;
+        case PlatformType.eightmovie:
+          items = await EightMovieService.fetchCatalog(page: page);
           break;
       }
     } catch (e) {
@@ -243,18 +251,62 @@ class _HomeScreenState extends State<HomeScreen> {
           break;
         case PlatformType.bmp4:
           resolved = await Bmp4Service.resolveDrama(q);
+          if (resolved == null) {
+            final matches = await Bmp4Service.search(q);
+            if (matches.isNotEmpty) {
+              setState(() {
+                _catalogItems = matches;
+                _isResolving = false;
+              });
+              if (_catalogScrollController.hasClients) _catalogScrollController.jumpTo(0);
+              return;
+            }
+          }
           break;
         case PlatformType.eightmovie:
           resolved = await EightMovieService.resolveDrama(q);
           break;
         case PlatformType.beeplaylet:
           resolved = await BeeplayletService.resolveDrama(q);
+          if (resolved == null) {
+            final matches = await BeeplayletService.search(q);
+            if (matches.isNotEmpty) {
+              setState(() {
+                _catalogItems = matches;
+                _isResolving = false;
+              });
+              if (_catalogScrollController.hasClients) _catalogScrollController.jumpTo(0);
+              return;
+            }
+          }
           break;
         case PlatformType.mydrama:
           resolved = await MyDramaService.resolveDrama(q);
+          if (resolved == null) {
+            final matches = await MyDramaService.search(q);
+            if (matches.isNotEmpty) {
+              setState(() {
+                _catalogItems = matches;
+                _isResolving = false;
+              });
+              if (_catalogScrollController.hasClients) _catalogScrollController.jumpTo(0);
+              return;
+            }
+          }
           break;
         case PlatformType.reelsdizim:
           resolved = await ReelsDizimService.resolveDrama(q);
+          if (resolved == null) {
+            final matches = await ReelsDizimService.search(q);
+            if (matches.isNotEmpty) {
+              setState(() {
+                _catalogItems = matches;
+                _isResolving = false;
+              });
+              if (_catalogScrollController.hasClients) _catalogScrollController.jumpTo(0);
+              return;
+            }
+          }
           break;
       }
     } catch (e) {
@@ -545,6 +597,10 @@ class _HomeScreenState extends State<HomeScreen> {
     const topPlatforms = [
       PlatformType.dramabox,
       PlatformType.hongguo,
+      PlatformType.reelsdizim,
+      PlatformType.beeplaylet,
+      PlatformType.bmp4,
+      PlatformType.mydrama,
       PlatformType.reelshort,
       PlatformType.web20,
     ];
@@ -677,7 +733,39 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildCategoryPills() {
-    final categories = DramaCategoryHelper.getCategories();
+    List<Map<String, String>> categories;
+    switch (_currentPlatform) {
+      case PlatformType.dramabox:
+        categories = DramaboxService.categories;
+        break;
+      case PlatformType.hongguo:
+        categories = DramaCategoryHelper.getCategories();
+        break;
+      case PlatformType.reelsdizim:
+        categories = ReelsDizimService.getCategories();
+        break;
+      case PlatformType.beeplaylet:
+        categories = const [
+          {'id': 'latest', 'name': '🆕 ថ្មីៗ (Latest)'},
+          {'id': 'hot', 'name': '🔥 ពេញនិយម (Hot)'},
+          {'id': 'rank', 'name': '🏆 ចំណាត់ថ្នាក់ (Rank)'},
+          {'id': 'free', 'name': '🎁 Free'},
+        ];
+        break;
+      case PlatformType.reelshort:
+        categories = ReelshortService.categories;
+        break;
+      case PlatformType.web20:
+        categories = IqiyiCreatorService.categories;
+        break;
+      case PlatformType.bmp4:
+      case PlatformType.mydrama:
+      case PlatformType.eightmovie:
+        categories = const [
+          {'id': 'all', 'name': '🔥 ទាំងអស់ (All)'},
+        ];
+        break;
+    }
 
     return Container(
       height: 36,

@@ -90,6 +90,19 @@ class MyDramaService {
     }
   }
 
+  /// Search dramas on my-drama.com
+  static Future<List<DramaItem>> search(String keyword) async {
+    final q = keyword.trim().toLowerCase();
+    if (q.isEmpty) return [];
+    try {
+      final list = await fetchCatalog(page: 1);
+      final matched = list.where((d) => d.title.toLowerCase().contains(q) || d.id.toLowerCase().contains(q)).toList();
+      return matched;
+    } catch (_) {
+      return [];
+    }
+  }
+
   /// Resolve drama and all episode M3U8 streams on my-drama.com
   static Future<DramaItem?> resolveDrama(String rawQuery) async {
     String text = rawQuery.trim();

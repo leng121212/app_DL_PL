@@ -378,6 +378,19 @@ class DownloadManager with ChangeNotifier {
             task.seriesId,
             task.episodeIndex,
           );
+          if (streamUrl == null || streamUrl.isEmpty) {
+            // Automatic fallback to ReelsDizim which has 1450+ full unlocked ReelShort dramas!
+            try {
+              final rMatches = await ReelsDizimService.search(task.dramaTitle);
+              if (rMatches.isNotEmpty) {
+                final rFull = await ReelsDizimService.resolveDrama(rMatches.first.id);
+                final rEp = rFull?.episodes?.where((e) => e.index == task.episodeIndex).firstOrNull;
+                if (rEp?.streamUrl != null && rEp!.streamUrl!.isNotEmpty) {
+                  streamUrl = rEp.streamUrl;
+                }
+              }
+            } catch (_) {}
+          }
         } else if (task.platform == PlatformType.eightmovie || (streamUrl != null && streamUrl.contains('8movie'))) {
           final res = await EightMovieService.resolveDrama(task.seriesId ?? streamUrl ?? '');
           final ep = res?.episodes?.where((e) => e.index == task.episodeIndex).firstOrNull;
@@ -398,6 +411,9 @@ class DownloadManager with ChangeNotifier {
           final res = await DramaboxService.resolveDrama(task.seriesId!);
           final ep = res?.episodes?.where((e) => e.index == task.episodeIndex).firstOrNull;
           streamUrl = ep?.streamUrl ?? streamUrl;
+          if (streamUrl == null || streamUrl.isEmpty) {
+            streamUrl = await DramaboxService.resolveEpisodeStream(task.seriesId!, task.episodeIndex);
+          }
         } else if (task.platform == PlatformType.beeplaylet && task.seriesId != null) {
           final res = await BeeplayletService.resolveDrama(task.seriesId!);
           final ep = res?.episodes?.where((e) => e.index == task.episodeIndex).firstOrNull;

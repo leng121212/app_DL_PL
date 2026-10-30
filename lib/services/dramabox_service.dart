@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
 import '../models/drama_models.dart';
+import 'hongguo_service.dart';
 
 class DramaboxService {
   static const String baseUrl = 'https://www.dramaboxdb.com';
@@ -151,12 +152,64 @@ class DramaboxService {
     return null;
   }
 
-  /// Resolve full drama and all episodes via Next.js SSR
+  /// Resolve full drama and all episodes (supports Dual-Engine Bridge for 100% full unlocked VIP episodes)
   static Future<DramaItem?> resolveDrama(String rawQuery) async {
     final bookId = extractBookId(rawQuery);
     if (bookId == null) return null;
 
     final targetUrl = '$baseUrl/movie/$bookId/drama';
+
+    // 1. Try Dual-Engine Bridge (unlocks 100% of all episodes via NunoDrama & Signed CDN)
+    final hasBridge = HongguoService.isBridgeAvailable == true || await HongguoService.checkBridgeConnection();
+    if (hasBridge) {
+      try {
+        final bridgeUrl = await HongguoService.getBridgeUrl();
+        final uri = Uri.parse('$bridgeUrl/dramabox/resolve?book_id=$bookId&api_key=${HongguoService.apiKey}');
+        final res = await http.get(uri, headers: {'x-api-key': HongguoService.apiKey}).timeout(const Duration(seconds: 12));
+        if (res.statusCode == 200) {
+          final data = jsonDecode(utf8.decode(res.bodyBytes));
+          if (data['success'] == true && data['episodes'] is List && (data['episodes'] as List).isNotEmpty) {
+            final title = '${data['title'] ?? 'DramaBox_$bookId'}'.trim();
+            final cover = '${data['cover'] ?? ''}'.trim();
+            final total = int.tryParse('${data['total_chapters']}') ?? (data['episodes'] as List).length;
+            final List<EpisodeItem> episodes = [];
+            for (final ep in data['episodes']) {
+              final idx = int.tryParse('${ep['index']}') ?? 1;
+              final t = '${ep['title'] ?? 'EP${idx.toString().padLeft(2, '0')}'}'.trim();
+              final chId = '${ep['chapter_id'] ?? idx}';
+              var sUrl = '${ep['stream_url'] ?? ''}'.trim();
+              if (sUrl.startsWith('/')) {
+                sUrl = '$bridgeUrl$sUrl&api_key=${HongguoService.apiKey}';
+              }
+              episodes.add(
+                EpisodeItem(
+                  index: idx,
+                  title: t,
+                  chapterName: t,
+                  chapterId: chId,
+                  streamUrl: sUrl.isNotEmpty ? sUrl : null,
+                  isFree: true,
+                ),
+              );
+            }
+            return DramaItem(
+              id: bookId,
+              title: title,
+              coverUrl: cover,
+              episodeCount: total > 0 ? total : episodes.length,
+              detailUrl: targetUrl,
+              platform: PlatformType.dramabox,
+              episodes: episodes,
+              tags: ['Full HD', 'Dual-Engine VIP Unlocked'],
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('[DramaBox Bridge Resolve Notice] $e');
+      }
+    }
+
+    // 2. Fallback to Next.js SSR Web scraper (episodes 1-7/1-13 free)
     try {
       final response = await http
           .get(Uri.parse(targetUrl), headers: _headers)
@@ -232,6 +285,11 @@ class DramaboxService {
 
   /// Resolve stream for a specific episode if not resolved in batch
   static Future<String?> resolveEpisodeStream(String bookId, int episodeIndex) async {
+    final hasBridge = HongguoService.isBridgeAvailable == true || await HongguoService.checkBridgeConnection();
+    if (hasBridge) {
+      final bridgeUrl = await HongguoService.getBridgeUrl();
+      return '$bridgeUrl/dramabox/stream?book_id=$bookId&ep=$episodeIndex&api_key=${HongguoService.apiKey}';
+    }
     final drama = await resolveDrama(bookId);
     if (drama != null && drama.episodes != null) {
       final ep = drama.episodes!.where((e) => e.index == episodeIndex).firstOrNull;
