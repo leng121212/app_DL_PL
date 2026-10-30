@@ -30,7 +30,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  PlatformType _currentPlatform = PlatformType.hongguo;
+  PlatformType _currentPlatform = PlatformType.beeplaylet;
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _catalogScrollController = ScrollController();
 
@@ -595,10 +595,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildPlatformTabs() {
     const topPlatforms = [
+      PlatformType.beeplaylet,
       PlatformType.dramabox,
       PlatformType.hongguo,
       PlatformType.reelsdizim,
-      PlatformType.beeplaylet,
       PlatformType.bmp4,
       PlatformType.mydrama,
       PlatformType.reelshort,

@@ -1,7 +1,7 @@
 {
-  "version": "1.1.5",
-  "versionCode": 17,
-  "changelog": "- ដោះស្រាយបញ្ហា DramaBox: អាចជ្រើសរើស និងទាញយកបានគ្រប់ភាគទាំងអស់ (Full EP 1-58) ជាមួយ Dual-Engine Server (Run_App_server.bat)\n- ដោះស្រាយបញ្ហា BeePlaylet: កែសម្រួល Card រឿង, ចំនួនភាគពិតប្រាកដ, និងប្រព័ន្ធទាញយកឲ្យត្រឹមត្រូវតាមរឿងនីមួយៗ ១០០%\n- ជួសជុលប្រព័ន្ធការពារកុំឲ្យទាញយកច្រឡំរឿង (Strict Title Match)",
+  "version": "1.1.6",
+  "versionCode": 18,
+  "changelog": "- ដាក់ BeePlaylet នៅខាងឆ្វេង Dramabox\n- កំណត់ឱ្យ App បើកមកទាញយក និងបង្ហាញតារាងរឿង BeePlaylet ដោយស្វ័យប្រវត្តិ (Default to BeePlaylet on Startup)\n- រៀបចំលំដាប់ Tab Platform ឱ្យកាន់តែរលូន និងងាយស្រួលប្រើប្រាស់",
   "downloadUrl": "https://github.com/leng121212/app_DL_PL/releases/latest/download/Trabekprey-DL-Pro-Release.apk",
   "forceUpdate": false
 }
