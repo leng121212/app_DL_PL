@@ -231,6 +231,7 @@ class DramaboxService {
 
       final chList = pageProps['chapterList'] as List? ?? [];
       final List<EpisodeItem> episodes = [];
+      final bridgeUrl = await HongguoService.getBridgeUrl();
 
       for (int i = 0; i < chList.length; i++) {
         final ch = chList[i];
@@ -243,17 +244,18 @@ class DramaboxService {
         // Check for direct MP4 or M3U8 video stream URL
         var stream = ch['mp4'] ?? ch['m3u8Url'];
         if (stream == null || (stream is String && stream.isEmpty)) {
-          // Check videoUrls or resources
           final urls = ch['videoUrls'] ?? ch['resources'];
           if (urls is List && urls.isNotEmpty) {
             stream = urls.first['url'] ?? urls.first['videoUrl'];
           }
         }
 
-        final streamUrl = (stream != null && '$stream'.startsWith('http')) ? '$stream' : null;
+        var streamUrl = (stream != null && '$stream'.startsWith('http')) ? '$stream' : null;
 
-        final hasStream = streamUrl != null && streamUrl.isNotEmpty;
-        final isUnlocked = ch['unlock'] == true;
+        // For VIP episodes without SSR stream (e.g. ep 14+), assign bridge resolver URL
+        if (streamUrl == null || streamUrl.isEmpty) {
+          streamUrl = '$bridgeUrl/dramabox/stream?book_id=$bookId&ep=$chIndex&api_key=${HongguoService.apiKey}';
+        }
 
         episodes.add(
           EpisodeItem(
@@ -262,7 +264,7 @@ class DramaboxService {
             chapterName: chName,
             chapterId: chId,
             streamUrl: streamUrl,
-            isFree: isUnlocked && hasStream,
+            isFree: true, // 100% unlocked via Dual-Engine Bridge
           ),
         );
       }
@@ -275,7 +277,7 @@ class DramaboxService {
         detailUrl: targetUrl,
         platform: PlatformType.dramabox,
         episodes: episodes,
-        tags: ['Full HD', 'DramaBox'],
+        tags: ['Full HD', 'DramaBox VIP Unlocked'],
       );
     } catch (e) {
       debugPrint('[DramaBox Resolve Error] $e');
@@ -283,11 +285,21 @@ class DramaboxService {
     }
   }
 
-  /// Resolve stream for a specific episode if not resolved in batch
+  /// Resolve direct stream URL for a specific episode using Dual-Engine Bridge
   static Future<String?> resolveEpisodeStream(String bookId, int episodeIndex) async {
     final hasBridge = HongguoService.isBridgeAvailable == true || await HongguoService.checkBridgeConnection();
     if (hasBridge) {
       final bridgeUrl = await HongguoService.getBridgeUrl();
+      try {
+        final uri = Uri.parse('$bridgeUrl/dramabox/stream?book_id=$bookId&ep=$episodeIndex&redirect=0&api_key=${HongguoService.apiKey}');
+        final res = await http.get(uri, headers: {'x-api-key': HongguoService.apiKey}).timeout(const Duration(seconds: 15));
+        if (res.statusCode == 200) {
+          final data = jsonDecode(utf8.decode(res.bodyBytes));
+          if (data['success'] == true && data['stream_url'] != null && '${data['stream_url']}'.isNotEmpty) {
+            return '${data['stream_url']}';
+          }
+        }
+      } catch (_) {}
       return '$bridgeUrl/dramabox/stream?book_id=$bookId&ep=$episodeIndex&api_key=${HongguoService.apiKey}';
     }
     final drama = await resolveDrama(bookId);

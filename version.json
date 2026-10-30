@@ -1,7 +1,7 @@
 {
-  "version": "1.1.4",
-  "versionCode": 16,
-  "changelog": "- បន្ថែម Tab: ReelsDizim, BeePlaylet, BMP4 និង MyDrama នៅខាងស្ដាំ Hongguo អាចទាញយកបាន Full Episode គ្រប់ភាគ ១០០%!\n- គាំទ្រ Dual-Engine Server (Run_App_server.bat) ដោនឡូតបានទាំង Hongguo & DramaBox គ្រប់ភាគ VIP 1080p!\n- បន្ថែម Auto-Fallback ស្វ័យប្រវត្តិសម្រាប់ ReelShort ទៅកាន់ ReelsDizim ធានាបានរឿងពេញលេញ",
+  "version": "1.1.5",
+  "versionCode": 17,
+  "changelog": "- ដោះស្រាយបញ្ហា DramaBox: អាចជ្រើសរើស និងទាញយកបានគ្រប់ភាគទាំងអស់ (Full EP 1-58) ជាមួយ Dual-Engine Server (Run_App_server.bat)\n- ដោះស្រាយបញ្ហា BeePlaylet: កែសម្រួល Card រឿង, ចំនួនភាគពិតប្រាកដ, និងប្រព័ន្ធទាញយកឲ្យត្រឹមត្រូវតាមរឿងនីមួយៗ ១០០%\n- ជួសជុលប្រព័ន្ធការពារកុំឲ្យទាញយកច្រឡំរឿង (Strict Title Match)",
   "downloadUrl": "https://github.com/leng121212/app_DL_PL/releases/latest/download/Trabekprey-DL-Pro-Release.apk",
   "forceUpdate": false
 }

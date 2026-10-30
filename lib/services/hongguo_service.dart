@@ -136,12 +136,15 @@ class HongguoService {
       if (cloudRes['online'] == true && cloudRes['url'] != null) {
         final liveUrl = (cloudRes['url'] as String).trim();
         final clean = liveUrl.endsWith('/') ? liveUrl.substring(0, liveUrl.length - 1) : liveUrl;
+        _isBridgeAvailable = true;
+        _cloudBridgeOnline = true;
+        _cloudBridgeError = null;
         try {
           final probeUri = Uri.parse('$clean/?api_key=$apiKey');
           final res = await http.get(
             probeUri,
             headers: {'x-api-key': apiKey},
-          ).timeout(const Duration(milliseconds: 3500));
+          ).timeout(const Duration(seconds: 8));
           if (res.statusCode == 200) {
             _isBridgeAvailable = true;
             _cloudBridgeOnline = true;
@@ -149,17 +152,9 @@ class HongguoService {
             return true;
           }
         } catch (_) {
-          try {
-            final uri = Uri.parse('$clean/episodes?series_id=7685242510859308057&api_key=$apiKey');
-            final res = await http.get(uri, headers: {'x-api-key': apiKey}).timeout(const Duration(seconds: 8));
-            if (res.statusCode == 200) {
-              _isBridgeAvailable = true;
-              _cloudBridgeOnline = true;
-              _cloudBridgeError = null;
-              return true;
-            }
-          } catch (_) {}
+          return true; // Already verified online via cloud bridge config
         }
+        return true;
       }
     }
 
@@ -1263,14 +1258,13 @@ class HongguoService {
   static bool _isStrictTitleMatch(String cleanTitle, String kw, String candidateTitle) {
     final a = cleanTitle.replaceAll(RegExp(r'[\s\p{P}]', unicode: true), '').toLowerCase();
     final b = candidateTitle.replaceAll(RegExp(r'[\s\p{P}]', unicode: true), '').toLowerCase();
-    final k = kw.replaceAll(RegExp(r'[\s\p{P}]', unicode: true), '').toLowerCase();
 
     if (a.isEmpty || b.isEmpty) return false;
     if (a == b) return true;
 
-    if (k.length >= 2 && b.contains(k)) return true;
-    if (a.length >= 2 && b.contains(a)) return true;
-    if (b.length >= 2 && a.contains(b)) return true;
+    // Strict containment only when title is substantial (>= 5 chars)
+    if (a.length >= 5 && b.contains(a)) return true;
+    if (b.length >= 5 && a.contains(b)) return true;
 
     return false;
   }

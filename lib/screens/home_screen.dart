@@ -746,9 +746,9 @@ class _HomeScreenState extends State<HomeScreen> {
         break;
       case PlatformType.beeplaylet:
         categories = const [
-          {'id': 'latest', 'name': '🆕 ថ្មីៗ (Latest)'},
-          {'id': 'hot', 'name': '🔥 ពេញនិយម (Hot)'},
+          {'id': 'all', 'name': '🔥 ពេញនិយម (Hot)'},
           {'id': 'rank', 'name': '🏆 ចំណាត់ថ្នាក់ (Rank)'},
+          {'id': 'latest', 'name': '🆕 ថ្មីៗ (Latest)'},
           {'id': 'free', 'name': '🎁 Free'},
         ];
         break;

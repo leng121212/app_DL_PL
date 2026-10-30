@@ -408,16 +408,22 @@ class DownloadManager with ChangeNotifier {
           final ep = res?.episodes?.where((e) => e.index == task.episodeIndex).firstOrNull;
           streamUrl = ep?.streamUrl ?? streamUrl;
         } else if (task.platform == PlatformType.dramabox && task.seriesId != null) {
-          final res = await DramaboxService.resolveDrama(task.seriesId!);
-          final ep = res?.episodes?.where((e) => e.index == task.episodeIndex).firstOrNull;
-          streamUrl = ep?.streamUrl ?? streamUrl;
+          // If streamUrl is null or is an intermediate bridge stream URL, resolve direct signed CloudFront URL
+          if (streamUrl == null || streamUrl.isEmpty || streamUrl.contains('/dramabox/stream')) {
+            final direct = await DramaboxService.resolveEpisodeStream(task.seriesId!, task.episodeIndex);
+            if (direct != null && direct.isNotEmpty) {
+              streamUrl = direct;
+            }
+          }
           if (streamUrl == null || streamUrl.isEmpty) {
-            streamUrl = await DramaboxService.resolveEpisodeStream(task.seriesId!, task.episodeIndex);
+            final res = await DramaboxService.resolveDrama(task.seriesId!);
+            final ep = res?.episodes?.where((e) => e.index == task.episodeIndex).firstOrNull;
+            streamUrl = ep?.streamUrl ?? streamUrl;
           }
         } else if (task.platform == PlatformType.beeplaylet && task.seriesId != null) {
           final res = await BeeplayletService.resolveDrama(task.seriesId!);
           final ep = res?.episodes?.where((e) => e.index == task.episodeIndex).firstOrNull;
-          streamUrl = ep?.streamUrl;
+          streamUrl = ep?.streamUrl ?? streamUrl;
         } else if (task.seriesId != null && task.seriesId!.startsWith('iqiyi_')) {
           if (streamUrl != null && streamUrl.isNotEmpty) {
             streamUrl = await IqiyiCreatorService.resolveEpisodeStream(streamUrl);
@@ -432,15 +438,15 @@ class DownloadManager with ChangeNotifier {
           streamUrl = await IqiyiCreatorService.resolveEpisodeStream(streamUrl);
         }
 
-        // Automatic mirror cross-resolution fallback for ANY drama if stream is missing
-        if (streamUrl == null || streamUrl.isEmpty) {
+        // Automatic mirror cross-resolution fallback ONLY for Hongguo when bridge is offline
+        if (task.platform == PlatformType.hongguo && (streamUrl == null || streamUrl.isEmpty)) {
           streamUrl = await _crossResolveStream(task.dramaTitle, task.episodeIndex);
         }
         task.streamUrl = streamUrl;
       }
 
-      // Final fallback check if streamUrl is still null
-      if (streamUrl == null || streamUrl.isEmpty) {
+      // Final fallback check ONLY for Hongguo
+      if (task.platform == PlatformType.hongguo && (streamUrl == null || streamUrl.isEmpty)) {
         streamUrl = await _crossResolveStream(task.dramaTitle, task.episodeIndex);
         task.streamUrl = streamUrl;
       }

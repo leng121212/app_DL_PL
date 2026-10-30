@@ -13,21 +13,22 @@ class BeeplayletService {
     'Referer': 'https://beeplaylet.com/',
   };
 
-  /// Fetch catalog from BeePlaylet API
+  /// Fetch catalog from BeePlaylet API with strict validation against broken dramas
   static Future<List<DramaItem>> fetchCatalog({
     int page = 1,
-    String category = 'latest',
+    String category = 'all',
   }) async {
     final offset = (page - 1) * 24;
     String endpoint;
-    if (category == 'hot') {
-      endpoint = '/api/Playlet/HotList?offset=$offset&count=24';
-    } else if (category == 'rank') {
+    if (category == 'rank') {
       endpoint = '/api/Playlet/RankingList?offset=$offset&count=24';
+    } else if (category == 'latest') {
+      endpoint = '/api/Playlet/Latest?offset=$offset&count=24';
     } else if (category == 'free') {
       endpoint = '/api/Playlet/FreeList?offset=$offset&count=24';
     } else {
-      endpoint = '/api/Playlet/Latest?offset=$offset&count=24';
+      // Default to HotList for high-quality, complete 50-150 episode series
+      endpoint = '/api/Playlet/HotList?offset=$offset&count=24';
     }
 
     try {
@@ -51,13 +52,18 @@ class BeeplayletService {
         final sid = '${it['id'] ?? it['seriesId'] ?? ''}';
         if (sid.isEmpty) continue;
 
-        final title = '${it['name'] ?? it['title'] ?? 'BeePlaylet Drama'}'.trim();
-        var cover = '${it['verticalCover'] ?? it['cover'] ?? it['targetCover'] ?? ''}'.trim();
-        if (cover.isNotEmpty && !cover.startsWith('http')) {
+        final title = '${it['name'] ?? it['title'] ?? ''}'.trim();
+        if (title.isEmpty) continue;
+
+        // Skip incomplete or empty dramas that have <= 1 episode
+        final epsCount = int.tryParse('${it['seriesCount']}') ?? 0;
+        if (epsCount <= 1) continue;
+
+        var cover = '${it['verticalCover'] ?? it['targetCover'] ?? it['cover'] ?? ''}'.trim();
+        if (cover.isEmpty) continue;
+        if (!cover.startsWith('http')) {
           cover = '$cdnBaseUrl$cover';
         }
-
-        final epsCount = int.tryParse('${it['seriesCount']}') ?? 50;
 
         items.add(
           DramaItem(
@@ -67,7 +73,7 @@ class BeeplayletService {
             episodeCount: epsCount,
             detailUrl: '$baseUrl/playlet/detail?id=$sid',
             platform: PlatformType.beeplaylet,
-            tags: ['Full HD'],
+            tags: ['Full HD', 'BeePlaylet'],
           ),
         );
       }
@@ -104,13 +110,17 @@ class BeeplayletService {
         final sid = '${it['id'] ?? it['seriesId'] ?? ''}';
         if (sid.isEmpty) continue;
 
-        final title = '${it['name'] ?? it['title'] ?? 'BeePlaylet Drama'}'.trim();
-        var cover = '${it['verticalCover'] ?? it['cover'] ?? it['targetCover'] ?? ''}'.trim();
-        if (cover.isNotEmpty && !cover.startsWith('http')) {
+        final title = '${it['name'] ?? it['title'] ?? ''}'.trim();
+        if (title.isEmpty) continue;
+
+        final epsCount = int.tryParse('${it['seriesCount']}') ?? 0;
+        if (epsCount <= 1) continue;
+
+        var cover = '${it['verticalCover'] ?? it['targetCover'] ?? it['cover'] ?? ''}'.trim();
+        if (cover.isEmpty) continue;
+        if (!cover.startsWith('http')) {
           cover = '$cdnBaseUrl$cover';
         }
-
-        final epsCount = int.tryParse('${it['seriesCount']}') ?? 50;
 
         items.add(
           DramaItem(
@@ -130,7 +140,7 @@ class BeeplayletService {
     }
   }
 
-  /// Resolve drama episodes from BeePlaylet
+  /// Resolve drama episodes from BeePlaylet with all episodes merged & sorted
   static Future<DramaItem?> resolveDrama(String rawQuery) async {
     String text = rawQuery.trim();
     String sid = text;
@@ -160,20 +170,48 @@ class BeeplayletService {
 
       final currentPlaylet = data['currentPlaylet'] as Map?;
       final title = '${currentPlaylet?['name'] ?? 'BeePlaylet_$sid'}'.trim();
-      var cover = '${currentPlaylet?['verticalCover'] ?? currentPlaylet?['targetCover'] ?? ''}'.trim();
+      var cover = '${currentPlaylet?['verticalCover'] ?? currentPlaylet?['targetCover'] ?? currentPlaylet?['cover'] ?? ''}'.trim();
       if (cover.isNotEmpty && !cover.startsWith('http')) {
         cover = '$cdnBaseUrl$cover';
       }
 
+      // Collect all videos: currentVideo + videos array
+      final List<Map<dynamic, dynamic>> allVideoMaps = [];
+      final Set<dynamic> seenIds = {};
+
+      final curVideo = data['currentVideo'];
+      if (curVideo is Map && curVideo['url'] != null && '${curVideo['url']}'.isNotEmpty) {
+        final vId = curVideo['id'] ?? curVideo['seriesNumber'];
+        if (vId != null) seenIds.add(vId);
+        allVideoMaps.add(curVideo);
+      }
+
       final rawVideos = data['videos'] as List? ?? [];
+      for (final v in rawVideos) {
+        if (v is! Map) continue;
+        final vId = v['id'] ?? v['seriesNumber'];
+        if (vId != null && seenIds.contains(vId)) continue;
+        if (vId != null) seenIds.add(vId);
+        allVideoMaps.add(v);
+      }
+
+      if (allVideoMaps.isEmpty) return null;
+
+      // Sort by episode/series number
+      allVideoMaps.sort((a, b) {
+        final na = int.tryParse('${a['seriesNumber']}') ?? 0;
+        final nb = int.tryParse('${b['seriesNumber']}') ?? 0;
+        return na.compareTo(nb);
+      });
+
       final List<EpisodeItem> episodes = [];
+      for (int i = 0; i < allVideoMaps.length; i++) {
+        final it = allVideoMaps[i];
+        final epNum = i + 1; // 1-indexed sequential
+        final origNum = int.tryParse('${it['seriesNumber']}') ?? epNum;
+        final rawTitle = '${it['seriesName'] ?? ''}'.trim();
+        final epTitle = rawTitle.isNotEmpty ? rawTitle : 'EP${epNum.toString().padLeft(2, '0')}';
 
-      for (int i = 0; i < rawVideos.length; i++) {
-        final it = rawVideos[i];
-        if (it is! Map) continue;
-
-        final epNum = int.tryParse('${it['seriesNumber']}') ?? (i + 1);
-        final epTitle = '${it['seriesName'] ?? 'EP${epNum.toString().padLeft(2, '0')}'}';
         var videoUrl = '${it['url'] ?? ''}'.trim();
         if (videoUrl.isNotEmpty && !videoUrl.startsWith('http')) {
           videoUrl = '$cdnBaseUrl$videoUrl';
@@ -182,9 +220,11 @@ class BeeplayletService {
         episodes.add(
           EpisodeItem(
             index: epNum,
-            title: epTitle,
+            title: 'EP${epNum.toString().padLeft(2, '0')}',
             chapterName: epTitle,
+            chapterId: '${it['id'] ?? epNum}',
             streamUrl: videoUrl.isNotEmpty ? videoUrl : null,
+            isFree: true,
           ),
         );
       }
@@ -197,7 +237,7 @@ class BeeplayletService {
         detailUrl: '$baseUrl/playlet/detail?id=$sid',
         platform: PlatformType.beeplaylet,
         episodes: episodes,
-        tags: ['Full HD'],
+        tags: ['Full HD', 'BeePlaylet'],
       );
     } catch (_) {
       return null;

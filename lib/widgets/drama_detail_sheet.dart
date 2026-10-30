@@ -35,7 +35,7 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
     super.initState();
     _currentDrama = widget.drama;
     _initSelection();
-    if (_currentDrama.platform == PlatformType.hongguo) {
+    if (_currentDrama.platform == PlatformType.hongguo || _currentDrama.platform == PlatformType.dramabox) {
       _checkBridgeStatus();
     }
   }
@@ -51,8 +51,8 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
         }
         _rangeController.text = '1-$count';
       } else if (_currentDrama.platform == PlatformType.dramabox) {
-        final freeEps = eps.where((e) => e.isFree && e.streamUrl != null && e.streamUrl!.isNotEmpty).toList();
-        final count = freeEps.isNotEmpty ? freeEps.length : (eps.length > 13 ? 13 : eps.length);
+        // Select all episodes by default for DramaBox (supports 1-58 full download)
+        final count = eps.length;
         for (int i = 0; i < count; i++) {
           _selectedIndices.add(eps[i].index);
         }
@@ -75,16 +75,22 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
         _isBridgeActive = connected;
         _isCheckingBridge = false;
       });
-      // If connected and current drama only has 3 episodes, reload to get full 65+ episodes
+      // If connected and current drama only has limited/free episodes, reload to get full episodes
       final currentCount = _currentDrama.episodes?.length ?? 0;
-      if (connected && currentCount <= 3) {
+      final freeCount = _currentDrama.episodes?.where((e) => e.isFree).length ?? 0;
+      if (connected && (_currentDrama.platform == PlatformType.dramabox || currentCount <= 3 || freeCount < currentCount)) {
         _reloadDrama();
       }
     }
   }
 
   Future<void> _reloadDrama() async {
-    final full = await HongguoService.resolveDrama(_currentDrama.id);
+    DramaItem? full;
+    if (_currentDrama.platform == PlatformType.hongguo) {
+      full = await HongguoService.resolveDrama(_currentDrama.id);
+    } else if (_currentDrama.platform == PlatformType.dramabox) {
+      full = await DramaboxService.resolveDrama(_currentDrama.id);
+    }
     if (full != null && full.episodes != null && full.episodes!.isNotEmpty && mounted) {
       setState(() {
         _currentDrama = full;
@@ -240,49 +246,12 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
     }
 
     if (_currentDrama.platform == PlatformType.dramabox && !_isBridgeActive) {
-      final lockedSelected = selectedEps
-          .where((e) => !e.isFree && (e.streamUrl == null || e.streamUrl!.isEmpty))
-          .toList();
-      if (lockedSelected.isNotEmpty) {
-        final freeCount = eps.where((e) => e.isFree || (e.streamUrl != null && e.streamUrl!.isNotEmpty)).length;
-        final proceed = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: AppTheme.cardBg,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Row(
-              children: [
-                Icon(Icons.lock_rounded, color: AppTheme.amberWarning, size: 22),
-                SizedBox(width: 8),
-                Text('DramaBox Web VIP Lock',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
-              ],
-            ),
-            content: Text(
-              'ភាគទី ${lockedSelected.first.index} ដល់ ${lockedSelected.last.index} (${lockedSelected.length} ភាគ) ជាប់សោ VIP នៅលើគេហទំព័រ DramaBox Web (អាចដោនឡូតបានដោយសេរីតែ $freeCount ភាគដំបូង)។\n\nតើលោកអ្នកចង់ទាញយកតែភាគឥតគិតថ្លៃ (Free EP 1-$freeCount) ដែរឬទេ?',
-              style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('ត្រឡប់ក្រោយ', style: TextStyle(color: AppTheme.textMuted)),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.cyanAccent, foregroundColor: Colors.black),
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text('ទាញយកតែភាគ 1-$freeCount', style: const TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-        );
-
-        if (proceed != true) return;
-        selectedEps = selectedEps
-            .where((e) => e.isFree || (e.streamUrl != null && e.streamUrl!.isNotEmpty))
-            .toList();
-        if (selectedEps.isEmpty) return;
-      }
+      // Opportunistically check bridge connection so download manager can stream all episodes
+      HongguoService.checkBridgeConnection().then((connected) {
+        if (connected && mounted) {
+          setState(() => _isBridgeActive = true);
+        }
+      });
     }
 
     setState(() => _isQueueing = true);
