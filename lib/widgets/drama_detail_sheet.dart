@@ -85,15 +85,14 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
   }
 
   Future<void> _reloadDrama() async {
-    DramaItem? full;
-    if (_currentDrama.platform == PlatformType.hongguo) {
-      full = await HongguoService.resolveDrama(_currentDrama.id);
-    } else if (_currentDrama.platform == PlatformType.dramabox) {
-      full = await DramaboxService.resolveDrama(_currentDrama.id);
-    }
+    final DramaItem? full = _currentDrama.platform == PlatformType.hongguo
+        ? await HongguoService.resolveDrama(_currentDrama.id)
+        : (_currentDrama.platform == PlatformType.dramabox
+            ? await DramaboxService.resolveDrama(_currentDrama.id)
+            : null);
     if (full != null && full.episodes != null && full.episodes!.isNotEmpty && mounted) {
       setState(() {
-        _currentDrama = full;
+        _currentDrama = full!;
         _initSelection();
       });
     }
