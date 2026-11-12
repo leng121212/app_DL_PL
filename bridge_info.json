@@ -1,10 +1,10 @@
 {
   "is_online": true,
-  "bridge_url": "https://reid-foods-eggs-repair.trycloudflare.com",
+  "bridge_url": "https://api.trycloudflare.com",
   "server_version": "1.1.4",
   "features": [
     "hongguo_vip",
     "dramabox_vip"
   ],
-  "updated_at": "2026-11-09 23:15:44"
+  "updated_at": "2026-11-12 13:33:03"
 }
