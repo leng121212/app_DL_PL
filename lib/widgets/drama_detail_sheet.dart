@@ -36,7 +36,7 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
     super.initState();
     _currentDrama = widget.drama;
     _initSelection();
-    if (_currentDrama.platform == PlatformType.hongguo || _currentDrama.platform == PlatformType.dramabox) {
+    if (_currentDrama.platform == PlatformType.dramabox) {
       _checkBridgeStatus();
     }
   }
@@ -80,7 +80,7 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
       // If connected and current drama only has limited/free episodes, reload to get full episodes
       final currentCount = _currentDrama.episodes?.length ?? 0;
       final freeCount = _currentDrama.episodes?.where((e) => e.isFree).length ?? 0;
-      if (connected && (_currentDrama.platform == PlatformType.dramabox || currentCount <= 3 || freeCount < currentCount)) {
+      if (connected && _currentDrama.platform == PlatformType.dramabox) {
         _reloadDrama();
       }
     }
@@ -234,7 +234,7 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
     }
   }
 
-  void _showHongguoBridgeDialog() async {
+  void _showServerBridgeDialog() async {
     bool testing = false;
     String? statusMessage;
     bool isSuccess = _isBridgeActive;
@@ -257,7 +257,7 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
                   Icon(Icons.bolt_rounded, color: AppTheme.cyanAccent),
                   SizedBox(width: 8),
                   Text(
-                    'Hongguo VIP Cloudflare Auto-Sync',
+                    'DramaBox VIP Server Auto-Sync',
                     style: TextStyle(fontSize: 15, color: AppTheme.textPrimary, fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -427,39 +427,6 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
     );
   }
 
-  Widget _buildHongguoBridgeBanner() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.green.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.greenAccent.withOpacity(0.4)),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.check_circle_outline_rounded, color: Colors.greenAccent, size: 20),
-          SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '🟢 Hongguo VIP Standalone (100% Unlocked)',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.greenAccent),
-                ),
-                Text(
-                  'អាចទាញយកបានគ្រប់ភាគ ១០០% ដោយផ្ទាល់លើទូរស័ព្ទ (No PC Server Needed)',
-                  style: TextStyle(fontSize: 10, color: Colors.white70),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildDramaboxBanner() {
     if (_isBridgeActive) {
       return Container(
@@ -533,7 +500,7 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
                 if (ok) {
                   await _reloadDrama();
                 } else {
-                  _showHongguoBridgeDialog();
+                  _showServerBridgeDialog();
                 }
               }
             },
@@ -670,8 +637,6 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
             ),
           ),
 
-          if (_currentDrama.platform == PlatformType.hongguo)
-            _buildHongguoBridgeBanner(),
           if (_currentDrama.platform == PlatformType.dramabox)
             _buildDramaboxBanner(),
 
@@ -781,9 +746,6 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      if (_currentDrama.platform == PlatformType.hongguo && !_isBridgeActive) ...[
-                        _buildQuickPill('1-3 (Free)', () => _selectRange(1, 3)),
-                      ],
                       if (_currentDrama.platform == PlatformType.dramabox) ...[
                         () {
                           final freeCount = eps.where((e) => e.isFree || (e.streamUrl != null && e.streamUrl!.isNotEmpty)).length;
@@ -828,11 +790,9 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
                       itemBuilder: (context, index) {
                         final ep = eps[index];
                         final isSelected = _selectedIndices.contains(ep.index);
-                        final isLocked = _currentDrama.platform == PlatformType.hongguo
-                            ? (!_isBridgeActive && ep.index > 3 && (ep.streamUrl == null || ep.streamUrl!.isEmpty))
-                            : (_currentDrama.platform == PlatformType.dramabox
-                                ? (!_isBridgeActive && !ep.isFree && (ep.streamUrl == null || ep.streamUrl!.isEmpty))
-                                : false);
+                        final isLocked = _currentDrama.platform == PlatformType.dramabox
+                            ? (!_isBridgeActive && !ep.isFree && (ep.streamUrl == null || ep.streamUrl!.isEmpty))
+                            : false;
                         final epLabel = (_currentDrama.platform == PlatformType.web20 ||
                                 _currentDrama.platform == PlatformType.hongguo ||
                                 ep.title.contains('集') ||

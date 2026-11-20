@@ -1,7 +1,7 @@
 {
-  "version": "1.1.7",
-  "versionCode": 19,
-  "changelog": "- អាចទាញយករឿងពី Hongguo បាន ១០០% គ្រប់ភាគទាំងអស់ដោយផ្ទាល់លើទូរស័ព្ទ ដោយមិនចាំបាច់បើក Server លើ PC នោះឡើយ\n- បញ្ចូលប្រព័ន្ធ Search ឈ្មោះរឿង Hongguo លើទូរស័ព្ទបានយ៉ាងរហ័ស ទាំងភាសាចិន និងតួអក្សរផ្សេងៗ (ផ្ទុកបញ្ជីរឿងជាង 10,500+ រឿង)\n- ដោះសោ VIP Hongguo Standalone ជាមួយ Multi-Mirror Auto-Resolver (1080p Full HD)\n- ជ្រើសរើសទាញយកគ្រប់ភាគទាំងអស់ដោយស្វ័យប្រវត្តិ (Select All Episodes)",
+  "version": "1.1.8",
+  "versionCode": 20,
+  "changelog": "- ផ្លាស់ប្តូរ Hongguo មកស្ថិតនៅលំដាប់មុខគេបង្អស់លើ Home Screen (Default Platform)\n- ដកចេញ Hongguo PC Bridge ពី Settings & Episodes ដោយសារដំណើរការ Standalone ១០០% លើទូរស័ព្ទ\n- កែសម្រួលបញ្ហាលោតផ្ទាំង Update ដដែលៗពេលដំឡើងរួច\n- អាច Search និងទាញយករឿង Hongguo បាន ១០០% គ្រប់ភាគ 1080p ដោយមិនបាច់បើក PC Server",
   "downloadUrl": "https://github.com/leng121212/app_DL_PL/releases/latest/download/Trabekprey-DL-Pro-Release.apk",
   "forceUpdate": false
 }

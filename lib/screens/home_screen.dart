@@ -30,7 +30,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  PlatformType _currentPlatform = PlatformType.beeplaylet;
+  PlatformType _currentPlatform = PlatformType.hongguo;
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _catalogScrollController = ScrollController();
 
@@ -569,7 +569,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(width: 8),
 
-          // Unified Settings Button (Hongguo Bridge + License)
+          // Unified Settings Button (License & App Update)
           Material(
             color: Colors.transparent,
             child: InkWell(
@@ -598,9 +598,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildPlatformTabs() {
     const topPlatforms = [
-      PlatformType.beeplaylet,
-      PlatformType.dramabox,
       PlatformType.hongguo,
+      PlatformType.dramabox,
+      PlatformType.beeplaylet,
       PlatformType.reelsdizim,
       PlatformType.bmp4,
       PlatformType.mydrama,
@@ -1089,10 +1089,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showSettingsSheet(BuildContext context) async {
-    bool checkingBridge = false;
-    bool isBridgeOnline = HongguoService.isCloudBridgeOnline ?? (HongguoService.isBridgeAvailable ?? false);
-    String? statusMessage;
-
     if (!context.mounted) return;
 
     showModalBottomSheet(
@@ -1294,187 +1290,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     const SizedBox(height: 16),
 
-                    // Section 2: Hongguo Server PC Bridge (Auto-Sync)
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: AppTheme.cardBg,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: isBridgeOnline ? AppTheme.greenSuccess.withOpacity(0.4) : AppTheme.cardBorder,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.bolt_rounded, color: AppTheme.cyanAccent, size: 20),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'Hongguo Pro Bridge (PC Server)',
-                                style: TextStyle(
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const Spacer(),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: (isBridgeOnline ? AppTheme.greenSuccess : AppTheme.redDanger).withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  isBridgeOnline ? 'Online 🟢' : 'Offline 🔴',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: isBridgeOnline ? AppTheme.greenSuccess : AppTheme.redDanger,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Container(
-                            padding: const EdgeInsets.all(11),
-                            decoration: BoxDecoration(
-                              color: isBridgeOnline
-                                  ? AppTheme.greenSuccess.withOpacity(0.08)
-                                  : AppTheme.redDanger.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: isBridgeOnline
-                                    ? AppTheme.greenSuccess.withOpacity(0.3)
-                                    : AppTheme.redDanger.withOpacity(0.3),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  isBridgeOnline ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
-                                  color: isBridgeOnline ? AppTheme.greenSuccess : AppTheme.redDanger,
-                                  size: 22,
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        isBridgeOnline
-                                            ? 'ប្រព័ន្ធ Auto-Sync បានភ្ជាប់ជោគជ័យ'
-                                            : 'Admin មិនទាន់បើក Server លើ PC',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                          color: isBridgeOnline ? AppTheme.greenSuccess : AppTheme.redDanger,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        isBridgeOnline
-                                            ? 'រាល់ភាគ VIP ទាំងអស់ក្នុង Hongguo អាចដោនឡូតបានដោយសេរី'
-                                            : (statusMessage ?? 'សូមចុច Auto-Sync ឡើងវិញ ឬទាក់ទង Telegram Admin'),
-                                        style: const TextStyle(fontSize: 10.5, color: AppTheme.textSecondary, height: 1.3),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          const Text(
-                            'សម្រាប់ដោនរឿង Hongguo ដែលជាប់ VIP គឺត្រូវការ Server ពី Admin៖',
-                            style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary, height: 1.4),
-                          ),
-                          const SizedBox(height: 8),
-                          InkWell(
-                            onTap: () => openSafeUrl('https://t.me/Chhunleng1122'),
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF24A1DE).withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: const Color(0xFF24A1DE).withOpacity(0.5)),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  CircleAvatar(
-                                    radius: 10,
-                                    backgroundColor: Color(0xFF24A1DE),
-                                    child: Icon(Icons.send_rounded, size: 11, color: Colors.white),
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Admin ៖ Chhunleng (t.me/Chhunleng1122)',
-                                    style: TextStyle(
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF54C5F8),
-                                    ),
-                                  ),
-                                  SizedBox(width: 6),
-                                  Icon(Icons.open_in_new_rounded, size: 13, color: Color(0xFF54C5F8)),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'ឬអាច Download រឿងពី Reelshort និង 20+ Web បានដោយមិនត្រូវការ Server',
-                            style: TextStyle(fontSize: 11, color: AppTheme.greenSuccess, height: 1.3),
-                          ),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: checkingBridge
-                                  ? null
-                                  : () async {
-                                      setSheetState(() {
-                                        checkingBridge = true;
-                                        statusMessage = 'កំពុង Sync ភ្ជាប់ទៅកាន់ Server...';
-                                      });
-                                      final ok = await HongguoService.checkBridgeConnection();
-                                      setSheetState(() {
-                                        checkingBridge = false;
-                                        isBridgeOnline = ok;
-                                        statusMessage = ok
-                                            ? '✅ ភ្ជាប់ជោគជ័យ! បើកដំណើរការ Full Episodes'
-                                            : (HongguoService.cloudBridgeError ?? '❌ Server មិនទាន់បើកដំណើរការលើ PC');
-                                      });
-                                    },
-                              icon: checkingBridge
-                                  ? const SizedBox(
-                                      width: 14,
-                                      height: 14,
-                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
-                                    )
-                                  : const Icon(Icons.sync_rounded, size: 16, color: Colors.black),
-                              label: Text(
-                                checkingBridge ? 'កំពុង Auto-Sync...' : 'ពិនិត្យ & ភ្ជាប់ឡើងវិញ (Auto-Sync)',
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.cyanAccent,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Section 3: App Auto-Update Card
+                    // Section 2: App Auto-Update Card
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
@@ -1548,7 +1364,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     const SizedBox(height: 16),
 
-                    // Section 4: App Footer Info
+                    // Section 3: App Footer Info
                     Center(
                       child: Column(
                         children: const [
@@ -1558,7 +1374,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           SizedBox(height: 2),
                           Text(
-                            'Version 2.5.0 • High-Speed Drama Downloader',
+                            'Version ${AppUpdateService.currentVersion} • High-Speed Drama Downloader',
                             style: TextStyle(fontSize: 9.5, color: AppTheme.textMuted),
                           ),
                         ],

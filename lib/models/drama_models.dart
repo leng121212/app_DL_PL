@@ -1,15 +1,15 @@
 import 'package:flutter/foundation.dart';
 
 enum PlatformType {
-  dramabox,
   hongguo,
+  dramabox,
+  beeplaylet,
   reelshort,
   web20,
   reelsdizim,
   eightmovie,
   mydrama,
   bmp4,
-  beeplaylet,
 }
 
 extension PlatformTypeExtension on PlatformType {
