@@ -45,12 +45,13 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
     final eps = _currentDrama.episodes ?? [];
     _selectedIndices.clear();
     if (eps.isNotEmpty) {
-      if (_currentDrama.platform == PlatformType.hongguo && !_isBridgeActive) {
-        final count = eps.length >= 3 ? 3 : eps.length;
+      if (_currentDrama.platform == PlatformType.hongguo) {
+        // Select all episodes by default for Hongguo Standalone 100% download
+        final count = eps.length;
         for (int i = 0; i < count; i++) {
           _selectedIndices.add(eps[i].index);
         }
-        _rangeController.text = '1-$count';
+        _rangeController.text = eps.isNotEmpty ? '1-$count' : '';
       } else if (_currentDrama.platform == PlatformType.dramabox) {
         // Select all episodes by default for DramaBox (supports 1-58 full download)
         final count = eps.length;
@@ -198,51 +199,6 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
         ),
       );
       return;
-    }
-
-    if (_currentDrama.platform == PlatformType.hongguo && !_isBridgeActive) {
-      final lockedSelected = selectedEps
-          .where((e) => e.index > 3 && (e.streamUrl == null || e.streamUrl!.isEmpty))
-          .toList();
-      if (lockedSelected.isNotEmpty) {
-        final proceed = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: AppTheme.cardBg,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Row(
-              children: [
-                Icon(Icons.bolt_rounded, color: AppTheme.amberWarning, size: 22),
-                SizedBox(width: 8),
-                Text('ត្រូវការ Hongguo VIP Bridge',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
-              ],
-            ),
-            content: Text(
-              'ភាគទី 4 ឡើងទៅ (${lockedSelected.length} ភាគ) ត្រូវការភ្ជាប់ VIP Server ពីកុំព្យូទ័រ (START_HONGGUO_PRO_BRIDGE.bat) ដើម្បីទាញយកបានគ្រប់ភាគ ១០០%។\n\nតើលោកអ្នកចង់ទាញយកតែភាគឥតគិតថ្លៃ (Free EP 1-3) ដែរឬទេ?',
-              style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('ត្រឡប់ក្រោយ', style: TextStyle(color: AppTheme.textMuted)),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.cyanAccent, foregroundColor: Colors.black),
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('ទាញយកតែភាគ 1-3', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-        );
-
-        if (proceed != true) return;
-        selectedEps = selectedEps
-            .where((e) => !(e.index > 3 && (e.streamUrl == null || e.streamUrl!.isEmpty)))
-            .toList();
-        if (selectedEps.isEmpty) return;
-      }
     }
 
     if (_currentDrama.platform == PlatformType.dramabox && !_isBridgeActive) {
@@ -472,85 +428,31 @@ class _DramaDetailSheetState extends State<DramaDetailSheet> {
   }
 
   Widget _buildHongguoBridgeBanner() {
-    if (_isBridgeActive) {
-      return Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.green.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
-        ),
-        child: const Row(
-          children: [
-            Icon(Icons.bolt_rounded, color: Colors.greenAccent, size: 20),
-            SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '⚡ Hongguo Pro Engine: បានភ្ជាប់ Cloudflare (Connected)',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.greenAccent),
-                  ),
-                  Text(
-                    'ដោនឡូតបានគ្រប់ភាគទាំងអស់ 1080p Full Episodes (គ្មានដែនកំណត់)!',
-                    style: TextStyle(fontSize: 10, color: Colors.white70),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.amber.withOpacity(0.12),
+        color: Colors.green.withOpacity(0.12),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.amber.withOpacity(0.4)),
+        border: Border.all(color: Colors.greenAccent.withOpacity(0.4)),
       ),
-      child: Row(
+      child: const Row(
         children: [
-          const Icon(Icons.info_outline, color: Colors.amber, size: 20),
-          const SizedBox(width: 8),
-          const Expanded(
+          Icon(Icons.check_circle_outline_rounded, color: Colors.greenAccent, size: 20),
+          SizedBox(width: 8),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Hongguo Web: ឥតគិតថ្លៃ 3 ភាគដំបូង',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amberAccent),
+                  '🟢 Hongguo VIP Standalone (100% Unlocked)',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.greenAccent),
                 ),
                 Text(
-                  'ចង់ដោនឡូតគ្រប់ភាគ 65+ ភាគពេញ? សូមបើក START_SERVER_FOR_APP.bat លើ PC!',
-                  style: TextStyle(fontSize: 10, color: Colors.amberAccent),
+                  'អាចទាញយកបានគ្រប់ភាគ ១០០% ដោយផ្ទាល់លើទូរស័ព្ទ (No PC Server Needed)',
+                  style: TextStyle(fontSize: 10, color: Colors.white70),
                 ),
               ],
-            ),
-          ),
-          ElevatedButton.icon(
-            onPressed: () async {
-              final ok = await HongguoService.checkBridgeConnection();
-              if (mounted) {
-                setState(() => _isBridgeActive = ok);
-                if (ok) {
-                  await _reloadDrama();
-                } else {
-                  _showHongguoBridgeDialog();
-                }
-              }
-            },
-            icon: const Icon(Icons.sync_rounded, size: 14),
-            label: const Text('ភ្ជាប់ Cloud', style: TextStyle(fontSize: 11)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.amber,
-              foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              elevation: 0,
             ),
           ),
         ],

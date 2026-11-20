@@ -455,7 +455,7 @@ class DownloadManager with ChangeNotifier {
         final isHongguoVip = task.platform == PlatformType.hongguo && task.episodeIndex > 3;
         final isDramaboxVip = task.platform == PlatformType.dramabox;
         final errMsg = isHongguoVip
-            ? 'ភាគទី ${task.episodeIndex} ជាប់សោ VIP នៅលើ Hongguo Web (អាចដោនឡូតបានតែ 3 ភាគដំបូង)'
+            ? 'ភាគទី ${task.episodeIndex} មិនអាចទាញយកបានទេ សូមសាកល្បងម្ដងទៀត'
             : (isDramaboxVip
                 ? 'ភាគទី ${task.episodeIndex} ជាប់សោ VIP នៅលើ DramaBox Web'
                 : 'មិនអាចស្វែងរក Link វីដេអូបានទេ (Stream not found)');

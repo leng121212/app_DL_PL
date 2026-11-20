@@ -105,7 +105,7 @@ extension PlatformTypeExtension on PlatformType {
       case PlatformType.dramabox:
         return 'បញ្ចូល DramaBox URL (dramaboxdb.com/movie/...) ឬ Book ID...';
       case PlatformType.hongguo:
-        return 'បញ្ចូល Series ID ឬ Link (hongguoduanju.com/detail?series_id=...)';
+        return 'ស្វែងរកឈ្មោះរឿង Hongguo ឬ បញ្ចូល Link / Series ID...';
       case PlatformType.reelshort:
         return 'បញ្ចូល ReelShort movie URL ឬ ID...';
       case PlatformType.web20:

@@ -1,7 +1,7 @@
 {
-  "version": "1.1.6",
-  "versionCode": 18,
-  "changelog": "- ដាក់ BeePlaylet នៅខាងឆ្វេង Dramabox\n- កំណត់ឱ្យ App បើកមកទាញយក និងបង្ហាញតារាងរឿង BeePlaylet ដោយស្វ័យប្រវត្តិ (Default to BeePlaylet on Startup)\n- រៀបចំលំដាប់ Tab Platform ឱ្យកាន់តែរលូន និងងាយស្រួលប្រើប្រាស់",
+  "version": "1.1.7",
+  "versionCode": 19,
+  "changelog": "- អាចទាញយករឿងពី Hongguo បាន ១០០% គ្រប់ភាគទាំងអស់ដោយផ្ទាល់លើទូរស័ព្ទ ដោយមិនចាំបាច់បើក Server លើ PC នោះឡើយ\n- បញ្ចូលប្រព័ន្ធ Search ឈ្មោះរឿង Hongguo លើទូរស័ព្ទបានយ៉ាងរហ័ស ទាំងភាសាចិន និងតួអក្សរផ្សេងៗ (ផ្ទុកបញ្ជីរឿងជាង 10,500+ រឿង)\n- ដោះសោ VIP Hongguo Standalone ជាមួយ Multi-Mirror Auto-Resolver (1080p Full HD)\n- ជ្រើសរើសទាញយកគ្រប់ភាគទាំងអស់ដោយស្វ័យប្រវត្តិ (Select All Episodes)",
   "downloadUrl": "https://github.com/leng121212/app_DL_PL/releases/latest/download/Trabekprey-DL-Pro-Release.apk",
   "forceUpdate": false
 }

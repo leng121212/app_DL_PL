@@ -198,8 +198,10 @@ class _HomeScreenState extends State<HomeScreen> {
           }
           break;
         case PlatformType.hongguo:
-          resolved = await HongguoService.resolveDrama(q);
-          if (resolved == null) {
+          final isUrlOrId = q.contains('http') || q.contains('novelquickapp') || q.contains('hongguo') || RegExp(r'^\d{15,22}$').hasMatch(q);
+          if (isUrlOrId) {
+            resolved = await HongguoService.resolveDrama(q);
+          } else {
             final hgMatches = await HongguoService.search(q);
             if (hgMatches.isNotEmpty) {
               setState(() {
@@ -211,6 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
               }
               return;
             }
+            resolved = await HongguoService.resolveDrama(q);
           }
           break;
         case PlatformType.reelshort:
