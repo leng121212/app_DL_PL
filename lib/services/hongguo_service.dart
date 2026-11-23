@@ -18,13 +18,14 @@ class HongguoService {
     'https://novelquickapp.com',
   ];
   static const String prefBridgeUrlKey = 'hongguo_bridge_url';
-  static const String defaultBridgeUrl = 'http://192.168.18.5:8000';
+  static const String defaultBridgeUrl = '';
   static const String apiKey = 'vidbee-key';
 
   static String? _cachedBridgeUrl;
   static bool? _isBridgeAvailable;
   static List<DramaItem>? _cachedCatalog;
   static bool _isLoadingCatalog = false;
+  static final Map<String, DramaItem?> _mirrorCache = {};
 
   /// Ensure 10,500+ curated Hongguo catalog is loaded from bundled assets
   static Future<void> _ensureCatalogLoaded() async {
@@ -186,17 +187,22 @@ class HongguoService {
       // 1. Primary: Direct high-speed fetch from GitHub raw manifest (zero-config, always awake)
       try {
         final ghUri = Uri.parse('https://raw.githubusercontent.com/leng121212/app_DL_PL/main/bridge_info.json?t=${DateTime.now().millisecondsSinceEpoch}');
-        final ghResp = await http.get(ghUri).timeout(const Duration(seconds: 5));
+        final ghResp = await http.get(ghUri).timeout(const Duration(seconds: 4));
         if (ghResp.statusCode == 200) {
           final ghData = jsonDecode(ghResp.body) as Map<String, dynamic>;
           final isOnline = ghData['is_online'] == true;
-          final bridgeUrl = ghData['bridge_url'] as String?;
-          if (isOnline && bridgeUrl != null && bridgeUrl.isNotEmpty) {
-            await setBridgeUrl(bridgeUrl);
-            _cloudBridgeOnline = true;
-            _isBridgeAvailable = true;
-            _cloudBridgeError = null;
-            return {'online': true, 'url': bridgeUrl};
+          final bridgeUrl = (ghData['bridge_url'] as String?)?.trim();
+          if (isOnline && bridgeUrl != null && bridgeUrl.isNotEmpty && !bridgeUrl.contains('192.168.18.5')) {
+            // Strictly verify before marking online
+            final probeUri = Uri.parse('$bridgeUrl/?api_key=$apiKey');
+            final pRes = await http.get(probeUri, headers: {'x-api-key': apiKey}).timeout(const Duration(seconds: 3));
+            if (pRes.statusCode == 200) {
+              await setBridgeUrl(bridgeUrl);
+              _cloudBridgeOnline = true;
+              _isBridgeAvailable = true;
+              _cloudBridgeError = null;
+              return {'online': true, 'url': bridgeUrl};
+            }
           }
         }
       } catch (_) {}
@@ -211,18 +217,22 @@ class HongguoService {
             'X-Device-Hash': deviceHash,
             'Accept': 'application/json',
           },
-        ).timeout(const Duration(seconds: 6));
+        ).timeout(const Duration(seconds: 4));
 
         if (resp.statusCode == 200) {
           final data = jsonDecode(resp.body) as Map<String, dynamic>;
           final isOnline = data['is_online'] == true;
-          final bridgeUrl = data['bridge_url'] as String?;
-          if (isOnline && bridgeUrl != null && bridgeUrl.isNotEmpty) {
-            await setBridgeUrl(bridgeUrl);
-            _cloudBridgeOnline = true;
-            _isBridgeAvailable = true;
-            _cloudBridgeError = null;
-            return {'online': true, 'url': bridgeUrl};
+          final bridgeUrl = (data['bridge_url'] as String?)?.trim();
+          if (isOnline && bridgeUrl != null && bridgeUrl.isNotEmpty && !bridgeUrl.contains('192.168.18.5')) {
+            final probeUri = Uri.parse('$bridgeUrl/?api_key=$apiKey');
+            final pRes = await http.get(probeUri, headers: {'x-api-key': apiKey}).timeout(const Duration(seconds: 3));
+            if (pRes.statusCode == 200) {
+              await setBridgeUrl(bridgeUrl);
+              _cloudBridgeOnline = true;
+              _isBridgeAvailable = true;
+              _cloudBridgeError = null;
+              return {'online': true, 'url': bridgeUrl};
+            }
           }
         }
       } catch (_) {}
@@ -238,43 +248,40 @@ class HongguoService {
 
   /// Check whether the Hongguo Pro Engine Bridge is running and reachable
   static Future<bool> checkBridgeConnection([String? testUrl]) async {
-    // 1. If no specific testUrl, always auto-sync Cloudflare tunnel from Cloud first!
-    if (testUrl == null || testUrl.isEmpty) {
-      final cloudRes = await fetchAutoBridgeFromCloud();
-      if (cloudRes['online'] == true && cloudRes['url'] != null) {
-        final liveUrl = (cloudRes['url'] as String).trim();
-        final clean = liveUrl.endsWith('/') ? liveUrl.substring(0, liveUrl.length - 1) : liveUrl;
-        _isBridgeAvailable = true;
-        _cloudBridgeOnline = true;
-        _cloudBridgeError = null;
-        try {
-          final probeUri = Uri.parse('$clean/?api_key=$apiKey');
-          final res = await http.get(
-            probeUri,
-            headers: {'x-api-key': apiKey},
-          ).timeout(const Duration(seconds: 8));
-          if (res.statusCode == 200) {
-            _isBridgeAvailable = true;
-            _cloudBridgeOnline = true;
-            _cloudBridgeError = null;
-            return true;
-          }
-        } catch (_) {
-          return true; // Already verified online via cloud bridge config
+    // 1. If specific URL provided, test it strictly
+    if (testUrl != null && testUrl.trim().isNotEmpty) {
+      final clean = testUrl.trim().endsWith('/') ? testUrl.trim().substring(0, testUrl.trim().length - 1) : testUrl.trim();
+      try {
+        final probeUri = Uri.parse('$clean/?api_key=$apiKey');
+        final res = await http.get(
+          probeUri,
+          headers: {'x-api-key': apiKey},
+        ).timeout(const Duration(milliseconds: 2500));
+        if (res.statusCode == 200) {
+          _isBridgeAvailable = true;
+          _cloudBridgeOnline = true;
+          _cloudBridgeError = null;
+          return true;
         }
-        return true;
-      }
+      } catch (_) {}
+      return false;
     }
 
-    // 2. Direct probe for saved or specified URL
-    final target = (testUrl != null && testUrl.trim().isNotEmpty) ? testUrl.trim() : await getBridgeUrl();
-    final clean = target.endsWith('/') ? target.substring(0, target.length - 1) : target;
+    // 2. Standalone mode: Default to FALSE immediately without hanging
+    final saved = await getBridgeUrl();
+    if (saved.isEmpty || saved.contains('192.168.18.5')) {
+      _isBridgeAvailable = false;
+      _cloudBridgeOnline = false;
+      return false;
+    }
+
+    final clean = saved.endsWith('/') ? saved.substring(0, saved.length - 1) : saved;
     try {
       final probeUri = Uri.parse('$clean/?api_key=$apiKey');
       final res = await http.get(
         probeUri,
         headers: {'x-api-key': apiKey},
-      ).timeout(const Duration(milliseconds: 3000));
+      ).timeout(const Duration(milliseconds: 2000));
       if (res.statusCode == 200) {
         _isBridgeAvailable = true;
         _cloudBridgeOnline = true;
@@ -1315,94 +1322,70 @@ class HongguoService {
     return null;
   }
 
-  /// Resolve direct MP4 stream URL for a specific episode vid (supports mirror fallback for EP4+)
+  /// Directly fetches official clean 720p MP4 stream from Hongguo protected playback API (Standalone - No PC Server needed)
+  static Future<String?> fetchHongguoDirectStream(String seriesId, String vid) async {
+    if (vid.isEmpty) return null;
+    final endpoints = [
+      'https://hongguoduanju.com/api/video/protected/fallback-play-info',
+      'https://hongguoduanju.com/api/video/protected/play-info',
+      'https://novelquickapp.com/api/video/protected/fallback-play-info',
+      'https://novelquickapp.com/api/video/protected/play-info',
+    ];
+
+    for (final ep in endpoints) {
+      try {
+        final uri = Uri.parse(ep);
+        final isPlayInfo = ep.endsWith('play-info');
+        final Map<String, dynamic> body = isPlayInfo
+            ? {'series_id': seriesId, 'item_id': vid, 'definition': '720p'}
+            : {'item_id': vid};
+
+        final response = await http.post(
+          uri,
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+            'Referer': 'https://hongguoduanju.com/player/$seriesId/$vid',
+            'Origin': 'https://hongguoduanju.com',
+            'Accept': 'application/json, text/plain, */*',
+          },
+          body: jsonEncode(body),
+        ).timeout(const Duration(seconds: 8));
+
+        if (response.statusCode == 200) {
+          final json = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+          final rawData = json['data'] ?? json;
+          final playData = (rawData is Map<String, dynamic>)
+              ? (rawData['play_info'] is Map<String, dynamic> ? rawData['play_info'] : rawData)
+              : <String, dynamic>{};
+
+          final streamUrl = (playData['main_url'] ?? playData['url'] ?? playData['backup_url']) as String?;
+          if (streamUrl != null && streamUrl.isNotEmpty) {
+            return streamUrl;
+          }
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  /// Resolve direct MP4 stream URL for a specific episode vid (supports direct Hongguo API & mirror fallback)
   static Future<String?> resolveEpisodeStream(
     String seriesId,
     String vid, {
     String? dramaTitle,
     int? episodeIndex,
   }) async {
-    // 1. If Bridge is active, return direct decrypted stream URL
-    // NOTE: VIP episodes on Hongguo are CENC DRM-encrypted on ByteDance CDN.
-    // The Bridge's /stream endpoint automatically decrypts the stream server-side
-    // using offline_decrypt (AES-CTR) and serves standard clean HEVC/H.264 MP4.
-    if (_isBridgeAvailable == true || await checkBridgeConnection()) {
-      final bridgeUrl = await getBridgeUrl();
-      if (vid.isNotEmpty) {
-        return '$bridgeUrl/stream?vid=$vid&api_key=$apiKey';
+    // 1. Direct Hongguo Web Play-Info API (Standalone on phone, 100% clean direct MP4)
+    if (vid.isNotEmpty) {
+      final direct = await fetchHongguoDirectStream(seriesId, vid);
+      if (direct != null && direct.isNotEmpty) {
+        return direct;
       }
     }
 
-    // 2. Hongguo web routes episode streams via path segment /player/{series_id}/{vid}
-    for (final domain in webDomains) {
-      final targetUrl = '$domain/player/$seriesId/$vid';
-
-      for (int attempt = 1; attempt <= 2; attempt++) {
-        http.Client? client;
-        try {
-          client = http.Client();
-          final response = await client.get(
-            Uri.parse(targetUrl),
-            headers: {
-              ..._headers,
-              'Connection': 'keep-alive',
-            },
-          ).timeout(const Duration(seconds: 12));
-
-          if (response.statusCode == 200) {
-            final html = response.body;
-            const startMarker = '_ROUTER_DATA = ';
-            const endMarker = 'function runWindowFn';
-
-            final startIndex = html.indexOf(startMarker);
-            if (startIndex >= 0) {
-              final endIndex = html.indexOf(endMarker, startIndex);
-              if (endIndex >= 0) {
-                final rawJson = html.substring(startIndex + startMarker.length, endIndex).trim();
-                final cleanJson = rawJson.endsWith(';') ? rawJson.substring(0, rawJson.length - 1) : rawJson;
-
-                final data = jsonDecode(cleanJson);
-                final loaderData = data['loaderData'] as Map<String, dynamic>? ?? {};
-
-                // Check exact episode-specific page key
-                final epData = loaderData['player_(series_id)/(vid)/page'] as Map<String, dynamic>?;
-                if (epData != null) {
-                  final pageVid = '${epData['vid'] ?? ''}';
-                  if (pageVid == vid || pageVid.isEmpty) {
-                    final epPlayerInfo = epData['video_player_info'] as Map<String, dynamic>?;
-                    final epUrl = epPlayerInfo?['main_url'] as String?;
-                    if (epUrl != null && epUrl.isNotEmpty) {
-                      return epUrl;
-                    }
-                  }
-                }
-
-                // Scan loaderData ONLY for an entry whose vid strictly matches the requested vid
-                for (final entry in loaderData.values) {
-                  if (entry is Map<String, dynamic>) {
-                    final entryVid = '${entry['vid'] ?? ''}';
-                    if (entryVid == vid) {
-                      final pInfo = entry['video_player_info'] as Map<String, dynamic>?;
-                      final mainUrl = pInfo?['main_url'] as String?;
-                      if (mainUrl != null && mainUrl.isNotEmpty) {
-                        return mainUrl;
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        } catch (e) {
-          if (attempt == 2) break;
-          await Future.delayed(const Duration(milliseconds: 300));
-        } finally {
-          client?.close();
-        }
-      }
-    }
-
-    // 3. Fallback: Mirror cross-resolution for EP > 3 when bridge is unavailable
+    // 2. Fallback: Mirror cross-resolution (BMP4, BeePlaylet, etc.) when Web VIP is restricted
     if (dramaTitle != null && dramaTitle.isNotEmpty && episodeIndex != null && episodeIndex > 0) {
       try {
         final mirror = await searchMirrorDrama(dramaTitle);
@@ -1415,10 +1398,72 @@ class HongguoService {
       } catch (_) {}
     }
 
+    // 3. Fallback: Hongguo web routes episode streams via path segment /player/{series_id}/{vid}
+    for (final domain in webDomains) {
+      final targetUrl = '$domain/player/$seriesId/$vid';
+      try {
+        final response = await http.get(
+          Uri.parse(targetUrl),
+          headers: _headers,
+        ).timeout(const Duration(seconds: 10));
+
+        if (response.statusCode == 200) {
+          final html = response.body;
+          const startMarker = '_ROUTER_DATA = ';
+          const endMarker = 'function runWindowFn';
+
+          final startIndex = html.indexOf(startMarker);
+          if (startIndex >= 0) {
+            final endIndex = html.indexOf(endMarker, startIndex);
+            if (endIndex >= 0) {
+              final rawJson = html.substring(startIndex + startMarker.length, endIndex).trim();
+              final cleanJson = rawJson.endsWith(';') ? rawJson.substring(0, rawJson.length - 1) : rawJson;
+
+              final data = jsonDecode(cleanJson);
+              final loaderData = data['loaderData'] as Map<String, dynamic>? ?? {};
+
+              final epData = loaderData['player_(series_id)/(vid)/page'] as Map<String, dynamic>?;
+              if (epData != null) {
+                final pageVid = '${epData['vid'] ?? ''}';
+                if (pageVid == vid || pageVid.isEmpty) {
+                  final epPlayerInfo = epData['video_player_info'] as Map<String, dynamic>?;
+                  final epUrl = epPlayerInfo?['main_url'] as String?;
+                  if (epUrl != null && epUrl.isNotEmpty) {
+                    return epUrl;
+                  }
+                }
+              }
+
+              for (final entry in loaderData.values) {
+                if (entry is Map<String, dynamic>) {
+                  final entryVid = '${entry['vid'] ?? ''}';
+                  if (entryVid == vid) {
+                    final pInfo = entry['video_player_info'] as Map<String, dynamic>?;
+                    final mainUrl = pInfo?['main_url'] as String?;
+                    if (mainUrl != null && mainUrl.isNotEmpty) {
+                      return mainUrl;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 4. Fallback: ONLY if Bridge PC Server is explicitly verified active and online
+    if (_isBridgeAvailable == true) {
+      final bridgeUrl = await getBridgeUrl();
+      if (vid.isNotEmpty && bridgeUrl.isNotEmpty && !bridgeUrl.contains('192.168.18.5')) {
+        return '$bridgeUrl/stream?vid=$vid&api_key=$apiKey';
+      }
+    }
+
     return null;
   }
 
-  /// Searches Chinese drama mirror platforms (BeePlaylet, 8Movie, BMP4) for matching unlocked episodes
+  /// Searches Chinese drama mirror platforms (BMP4, BeePlaylet, 8Movie) for matching unlocked episodes
   static Future<DramaItem?> searchMirrorDrama(String rawTitle) async {
     String cleanTitle = rawTitle
         .replaceAll(RegExp(r'《|》|\[|\]|\(|\)|（|）|【|】|“|”|\s*-\s*短剧.*$|\s*-\s*.*$'), '')
@@ -1431,6 +1476,11 @@ class HongguoService {
         .trim();
 
     if (cleanTitle.isEmpty) return null;
+
+    final cacheKey = normalizeChinese(cleanTitle);
+    if (_mirrorCache.containsKey(cacheKey)) {
+      return _mirrorCache[cacheKey];
+    }
 
     final List<String> searchKeywords = [];
     searchKeywords.add(cleanTitle);
@@ -1462,47 +1512,7 @@ class HongguoService {
     final allKws = [...searchKeywords, ...tradKeywords];
 
     for (final kw in allKws) {
-      // 1. Search BeePlaylet
-      try {
-        final beeResults = await BeeplayletService.search(kw);
-        if (beeResults.isNotEmpty) {
-          DramaItem? best;
-          for (final item in beeResults) {
-            if (_isFuzzyTitleMatch(cleanTitle, item.title)) {
-              best = item;
-              break;
-            }
-          }
-          if (best != null) {
-            final resolved = await BeeplayletService.resolveDrama(best.id);
-            if (resolved != null && resolved.episodes != null && resolved.episodes!.isNotEmpty) {
-              return resolved;
-            }
-          }
-        }
-      } catch (_) {}
-
-      // 2. Search 8Movie
-      try {
-        final results = await EightMovieService.search(kw);
-        if (results.isNotEmpty) {
-          DramaItem? best;
-          for (final item in results) {
-            if (_isFuzzyTitleMatch(cleanTitle, item.title)) {
-              best = item;
-              break;
-            }
-          }
-          if (best != null) {
-            final resolved = await EightMovieService.resolveDrama(best.id);
-            if (resolved != null && resolved.episodes != null && resolved.episodes!.isNotEmpty) {
-              return resolved;
-            }
-          }
-        }
-      } catch (_) {}
-
-      // 3. Search BMP4
+      // 1. Search BMP4 (Fastest and highly reliable for full unlocked episodes)
       try {
         final bmpResults = await Bmp4Service.search(kw);
         if (bmpResults.isNotEmpty) {
@@ -1516,6 +1526,49 @@ class HongguoService {
           if (best != null) {
             final resolved = await Bmp4Service.resolveDrama(best.id);
             if (resolved != null && resolved.episodes != null && resolved.episodes!.isNotEmpty) {
+              _mirrorCache[cacheKey] = resolved;
+              return resolved;
+            }
+          }
+        }
+      } catch (_) {}
+
+      // 2. Search BeePlaylet
+      try {
+        final beeResults = await BeeplayletService.search(kw);
+        if (beeResults.isNotEmpty) {
+          DramaItem? best;
+          for (final item in beeResults) {
+            if (_isFuzzyTitleMatch(cleanTitle, item.title)) {
+              best = item;
+              break;
+            }
+          }
+          if (best != null) {
+            final resolved = await BeeplayletService.resolveDrama(best.id);
+            if (resolved != null && resolved.episodes != null && resolved.episodes!.isNotEmpty) {
+              _mirrorCache[cacheKey] = resolved;
+              return resolved;
+            }
+          }
+        }
+      } catch (_) {}
+
+      // 3. Search 8Movie
+      try {
+        final results = await EightMovieService.search(kw);
+        if (results.isNotEmpty) {
+          DramaItem? best;
+          for (final item in results) {
+            if (_isFuzzyTitleMatch(cleanTitle, item.title)) {
+              best = item;
+              break;
+            }
+          }
+          if (best != null) {
+            final resolved = await EightMovieService.resolveDrama(best.id);
+            if (resolved != null && resolved.episodes != null && resolved.episodes!.isNotEmpty) {
+              _mirrorCache[cacheKey] = resolved;
               return resolved;
             }
           }
@@ -1523,6 +1576,7 @@ class HongguoService {
       } catch (_) {}
     }
 
+    _mirrorCache[cacheKey] = null;
     return null;
   }
 
@@ -1538,9 +1592,13 @@ class HongguoService {
     if (a.length >= 3 && b.contains(a)) return true;
     if (b.length >= 3 && a.contains(b)) return true;
 
-    // Match first 4 characters
+    // Sub-token / 4-character overlap match
     if (a.length >= 4 && b.length >= 4) {
       if (b.startsWith(a.substring(0, 4)) || a.startsWith(b.substring(0, 4))) return true;
+      for (int i = 0; i <= a.length - 4; i++) {
+        final sub = a.substring(i, i + 4);
+        if (b.contains(sub)) return true;
+      }
     }
 
     return false;
