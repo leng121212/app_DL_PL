@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/drama_models.dart';
 import '../services/app_update_service.dart';
@@ -53,7 +54,14 @@ class _HomeScreenState extends State<HomeScreen> {
       try {
         final info = await AppUpdateService().checkForUpdate();
         if (info.hasUpdate && mounted) {
-          AppUpdateDialog.show(context, info);
+          final prefs = await SharedPreferences.getInstance();
+          final dismissedCode = prefs.getInt('dismissed_update_code') ?? 0;
+          if (!info.forceUpdate && dismissedCode >= info.latestVersionCode) {
+            return;
+          }
+          if (mounted) {
+            AppUpdateDialog.show(context, info);
+          }
         }
       } catch (_) {}
     });

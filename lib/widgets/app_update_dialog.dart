@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/app_update_service.dart';
 import '../theme/app_theme.dart';
 
@@ -318,7 +319,15 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
                 children: [
                   if (!widget.updateInfo.forceUpdate)
                     TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: () async {
+                        try {
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.setInt('dismissed_update_code', widget.updateInfo.latestVersionCode);
+                        } catch (_) {}
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                        }
+                      },
                       child: const Text(
                         'ពេលក្រោយ',
                         style: TextStyle(color: AppTheme.textMuted),

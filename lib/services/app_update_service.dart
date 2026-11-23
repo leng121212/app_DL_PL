@@ -30,10 +30,34 @@ class AppUpdateInfo {
 }
 
 class AppUpdateService {
-  static const String currentVersion = '1.1.8';
-  static const int currentVersionCode = 20;
+  static String currentVersion = '1.2.0';
+  static int currentVersionCode = 22;
+  static bool _hasLoadedAppVersion = false;
 
   static const _channel = MethodChannel('com.trabekprey.downloader/storage');
+
+  static Future<void> initVersion() async {
+    if (_hasLoadedAppVersion) return;
+    try {
+      if (Platform.isAndroid) {
+        final res = await _channel.invokeMethod<Map>('getAppVersion');
+        if (res != null) {
+          final name = res['versionName'] as String?;
+          final code = (res['versionCode'] as num?)?.toInt();
+          if (name != null && name.trim().isNotEmpty) {
+            currentVersion = name.trim();
+          }
+          if (code != null && code > 0) {
+            currentVersionCode = code;
+          }
+          _hasLoadedAppVersion = true;
+          debugPrint('[AppUpdateService] Loaded package version: $currentVersion (code $currentVersionCode)');
+        }
+      }
+    } catch (e) {
+      debugPrint('[AppUpdateService] initVersion error: $e');
+    }
+  }
 
   // GitHub repository endpoints for client updates
   static const _rawVersionJsonUrls = [
@@ -47,6 +71,7 @@ class AppUpdateService {
   ];
 
   Future<AppUpdateInfo> checkForUpdate() async {
+    await initVersion();
     // 1. Try checking version.json first (Fastest, no GitHub API rate limits)
     for (final url in _rawVersionJsonUrls) {
       try {

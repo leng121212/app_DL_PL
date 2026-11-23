@@ -1,7 +1,7 @@
 {
   "is_online": false,
   "bridge_url": "",
-  "server_version": "1.1.9",
+  "server_version": "1.2.0",
   "features": [
     "hongguo_direct_cdn",
     "hongguo_mirror_bmp4",
