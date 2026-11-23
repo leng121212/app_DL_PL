@@ -156,7 +156,7 @@ class AppUpdateService {
       }
     }
 
-    return const AppUpdateInfo(
+    return AppUpdateInfo(
       hasUpdate: false,
       currentVersion: currentVersion,
       latestVersion: currentVersion,

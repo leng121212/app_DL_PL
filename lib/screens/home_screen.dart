@@ -1323,11 +1323,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                 child: const Icon(Icons.system_update_rounded, color: AppTheme.cyanAccent, size: 18),
                               ),
                               const SizedBox(width: 10),
-                              const Expanded(
+                              Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
+                                    const Text(
                                       'កំណែអាប់ដេត (App Update)',
                                       style: TextStyle(
                                         fontSize: 13.5,
@@ -1337,7 +1337,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                     Text(
                                       'Version បច្ចុប្បន្ន: v${AppUpdateService.currentVersion}',
-                                      style: TextStyle(fontSize: 10.5, color: AppTheme.cyanAccent),
+                                      style: const TextStyle(fontSize: 10.5, color: AppTheme.cyanAccent),
                                     ),
                                   ],
                                 ),
@@ -1375,15 +1375,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     // Section 3: App Footer Info
                     Center(
                       child: Column(
-                        children: const [
-                          Text(
+                        children: [
+                          const Text(
                             'Trabekprey-DL Pro • Dev: Tong Chhunleng',
                             style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.textMuted),
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Text(
                             'Version ${AppUpdateService.currentVersion} • High-Speed Drama Downloader',
-                            style: TextStyle(fontSize: 9.5, color: AppTheme.textMuted),
+                            style: const TextStyle(fontSize: 9.5, color: AppTheme.textMuted),
                           ),
                         ],
                       ),
