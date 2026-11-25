@@ -1769,6 +1769,7 @@ class HongguoService {
             title: vodName,
             coverUrl: item['vod_pic']?.toString() ?? '',
             episodeCount: eps.length,
+            detailUrl: '',
             platform: PlatformType.hongguo,
             episodes: eps,
             tags: ['1080p (Global Mirror)'],
