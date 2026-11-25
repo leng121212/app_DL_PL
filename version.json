@@ -1,7 +1,7 @@
 {
-  "version": "1.2.0",
-  "versionCode": 22,
-  "changelog": "- ជួសជុលបញ្ហា Install ម្ដងទៀតៗៗ (Fix infinite update/install loop)\n- គាំទ្រ Auto Version Detection ពី Android System ផ្ទាល់ (លែងលោត Update ជាន់គ្នា)\n- ដំណើរការ Standalone ១០០% លើទូរស័ព្ទ ដោយមិនបាច់បើក PC Server\n- គាំទ្រ Direct CDN Play-Info API ពី Hongguo ផ្ទាល់ (720p HD MP4)\n- ពង្រឹង Auto Mirror Resolution (BMP4, BeePlaylet) សម្រាប់ភាគ VIP",
+  "version": "1.2.1",
+  "versionCode": 23,
+  "changelog": "- Fix Hongguo VIP download lock: integrate high-speed global Modu VOD mirror fallback (no VPN required)\n- Fix auto-update version check and stream resolution\n- 100% Free Full Episodes download support",
   "downloadUrl": "https://github.com/leng121212/app_DL_PL/releases/latest/download/Trabekprey-DL-Pro-Release.apk",
   "forceUpdate": false
 }
