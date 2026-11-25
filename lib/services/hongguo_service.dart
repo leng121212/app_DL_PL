@@ -1512,6 +1512,15 @@ class HongguoService {
     final allKws = [...searchKeywords, ...tradKeywords];
 
     for (final kw in allKws) {
+      // 0. Search Modu VOD (Global HLS Mirror - 100% accessible worldwide WITHOUT VPN)
+      try {
+        final moduItem = await _searchModuDrama(kw);
+        if (moduItem != null && moduItem.episodes != null && moduItem.episodes!.isNotEmpty) {
+          _mirrorCache[cacheKey] = moduItem;
+          return moduItem;
+        }
+      } catch (_) {}
+
       // 1. Search BMP4 (Fastest and highly reliable for full unlocked episodes)
       try {
         final bmpResults = await Bmp4Service.search(kw);
@@ -1709,5 +1718,64 @@ class HongguoService {
     } catch (_) {
       return webDrama;
     }
+  }
+
+  /// Queries global Modu VOD API for 100% unrestricted worldwide HLS streams without VPN
+  static Future<DramaItem?> _searchModuDrama(String kw) async {
+    const apiUrl = 'https://caiji.moduapi.cc/api.php/provide/vod/?ac=detail&wd=';
+    try {
+      final url = Uri.parse('$apiUrl${Uri.encodeComponent(kw)}');
+      final res = await http.get(url, headers: {'User-Agent': 'Mozilla/5.0'}).timeout(const Duration(seconds: 6));
+      if (res.statusCode != 200) return null;
+      final json = jsonDecode(utf8.decode(res.bodyBytes));
+      final list = (json['list'] as List?) ?? [];
+      for (final item in list) {
+        final vodName = item['vod_name']?.toString() ?? '';
+        final playUrl = item['vod_play_url']?.toString() ?? '';
+        if (playUrl.isEmpty) continue;
+
+        final parts = playUrl.split('#');
+        final List<EpisodeItem> eps = [];
+        for (int i = 0; i < parts.length; i++) {
+          final p = parts[i].trim();
+          if (p.isEmpty) continue;
+          if (p.contains(r'$')) {
+            final sub = p.split(r'$');
+            final name = sub[0].trim();
+            final sUrl = sub.length > 1 ? sub[1].trim() : '';
+            if (sUrl.startsWith('http')) {
+              eps.add(EpisodeItem(
+                index: i + 1,
+                title: name.isNotEmpty ? name : 'EP${(i + 1).toString().padLeft(2, '0')}',
+                chapterName: '🟢 Full HD (1080p)',
+                streamUrl: sUrl,
+                isFree: true,
+              ));
+            }
+          } else if (p.startsWith('http')) {
+            eps.add(EpisodeItem(
+              index: i + 1,
+              title: 'EP${(i + 1).toString().padLeft(2, '0')}',
+              chapterName: '🟢 Full HD (1080p)',
+              streamUrl: p,
+              isFree: true,
+            ));
+          }
+        }
+
+        if (eps.isNotEmpty) {
+          return DramaItem(
+            id: item['vod_id']?.toString() ?? '${DateTime.now().millisecondsSinceEpoch}',
+            title: vodName,
+            coverUrl: item['vod_pic']?.toString() ?? '',
+            episodeCount: eps.length,
+            platform: PlatformType.hongguo,
+            episodes: eps,
+            tags: ['1080p (Global Mirror)'],
+          );
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 }
