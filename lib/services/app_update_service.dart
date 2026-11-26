@@ -30,8 +30,8 @@ class AppUpdateInfo {
 }
 
 class AppUpdateService {
-  static String currentVersion = '1.2.2';
-  static int currentVersionCode = 24;
+  static String currentVersion = '1.2.3';
+  static int currentVersionCode = 25;
   static bool _hasLoadedAppVersion = false;
 
   static const _channel = MethodChannel('com.trabekprey.downloader/storage');

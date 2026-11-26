@@ -1,6 +1,6 @@
 {
-  "version": "1.2.2",
-  "versionCode": 24,
+  "version": "1.2.3",
+  "versionCode": 25,
   "changelog": "- ធ្វើឱ្យប្រសើរឡើងនូវម៉ាស៊ីនទាញយក short drama គ្រប់ភាគ ១០០% (Full Episodes)\n- ជួសជុលបញ្ហា Error HTTP 206 លើការទាញយក Segment វីដេអូ\n- បង្កើនល្បឿន និងស្ថិរភាពនៃការទាញយកកម្រិត Full HD",
   "downloadUrl": "https://github.com/leng121212/app_DL_PL/releases/latest/download/Trabekprey-DL-Pro-Release.apk",
   "forceUpdate": false
