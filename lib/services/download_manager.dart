@@ -665,7 +665,7 @@ class DownloadManager with ChangeNotifier {
                 headers: segHeaders,
               ).timeout(const Duration(seconds: 60));
 
-              if (sRes.statusCode == 200 && sRes.bodyBytes.isNotEmpty) {
+              if ((sRes.statusCode == 200 || sRes.statusCode == 206) && sRes.bodyBytes.isNotEmpty) {
                 segBytes = sRes.bodyBytes;
                 break;
               } else {
