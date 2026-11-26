@@ -1389,10 +1389,13 @@ class HongguoService {
     if (dramaTitle != null && dramaTitle.isNotEmpty && episodeIndex != null && episodeIndex > 0) {
       try {
         final mirror = await searchMirrorDrama(dramaTitle);
-        if (mirror != null && mirror.episodes != null) {
+        if (mirror != null && mirror.episodes != null && mirror.episodes!.isNotEmpty) {
           final ep = mirror.episodes!.where((e) => e.index == episodeIndex).firstOrNull;
           if (ep?.streamUrl != null && ep!.streamUrl!.isNotEmpty) {
             return ep.streamUrl;
+          }
+          if (mirror.episodes!.length == 1 && mirror.episodes!.first.streamUrl != null) {
+            return mirror.episodes!.first.streamUrl;
           }
         }
       } catch (_) {}
